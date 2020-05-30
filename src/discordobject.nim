@@ -1,5 +1,5 @@
 type 
-    snowflake = uint64
+    snowflake* = uint64
     DiscordObject* = object of RootObj
         id*: snowflake
 
