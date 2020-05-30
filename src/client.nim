@@ -1,4 +1,4 @@
-import websocket, asyncnet, asyncdispatch, json, httpClient, strformat
+import websocket, asyncnet, asyncdispatch, json, httpClient, strformat, eventdispatcher, eventhandler
 
 type
     DiscordOpCode = enum
@@ -13,8 +13,6 @@ type
         opInvalidSession = 9,
         opHello = 10,
         opHeartbeatAck = 11
-
-
 
     DiscordClient* = ref object ## Discord Client
         token*: string
@@ -72,6 +70,8 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
                 client.heartbeatAcked = true
             of ord(DiscordOpCode.opHeartbeatAck):
                 client.heartbeatAcked = true
+            of ord(DiscordOpCode.opDispatch):
+                handleDiscordEvent(json["d"], json["t"].getStr())
             else:
                 discard
             
@@ -101,5 +101,11 @@ proc startConnection*(client: DiscordClient) {.async.} =
         raise e
 
 var bot = DiscordClient(token: 
-    "NjQ4NjcwNDA4NDg4MjU1NTAw.XtCGDw.ZNaRT6kNIMyO1wlcZbbaUGSsm7g")
+    "TOKEN")
+
+registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
+    let event: ReadyEvent = ReadyEvent(bEvt)
+    echo "Ready and connected!"
+)
+
 waitFor bot.startConnection()
