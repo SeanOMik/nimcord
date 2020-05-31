@@ -100,10 +100,12 @@ proc startConnection*(client: DiscordClient) {.async.} =
         e.msg = "Failed to get gateway url, token may of been incorrect!"
         raise e
 
-var tokenStream = newFileStream("../token.txt", fmWrite)
+var tokenStream = newFileStream("token.txt", fmRead)
 var tkn: string
 if (not isNil(tokenStream)):
     discard tokenStream.readLine(tkn)
+    echo "Read token from the file: ", tkn
+
     tokenStream.close()
 
 var bot = DiscordClient(token: tkn)
