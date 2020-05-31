@@ -14,8 +14,7 @@ let eventListeners = newTable[string, seq[proc(event: BaseEvent)]]()
 
 proc registerEventListener*(event: EventType, listener: proc(event: BaseEvent)) =
     if (eventListeners.hasKey($event)):
-        var listeners = eventListeners[$event]
-        listeners.add(cast[proc(event: BaseEvent)](listener))
+        eventListeners[$event].add(cast[proc(event: BaseEvent)](listener))
 
         echo "Added other event listener: ", $event
     else:
@@ -25,12 +24,10 @@ proc registerEventListener*(event: EventType, listener: proc(event: BaseEvent)) 
         echo "Added new event listener: ", $event
 
 proc dispatchEvent*[T: BaseEvent](event: T) = 
-    #let base: BaseEvent = BaseEvent(event)
-
     if (eventListeners.hasKey(event.name)):
         let listeners = eventListeners[event.name]
+        echo "Dispatching event: ", event.name
         for index, eventListener in listeners.pairs:
-            echo "Dispatching event: ", event.name
             eventListener(event)
     else:
         echo "No event listeners for event: ", event.name
