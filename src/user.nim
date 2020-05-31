@@ -21,19 +21,19 @@ type
         premiumType*: NitroSubscription ## The type of Nitro subscription on a user's account.
         publicFlags*: int ## The public flags on a user's account.
 
-proc newUser*(json: json.JsonNode): User =
+proc newUser*(user: JsonNode): User {.inline.} =
     return User(
-        id: getIDFromJson(json["id"].getStr()),
-        username: json["username"].getStr(),
-        discriminator: cushort(json["discriminator"].getInt()),
-        avatar: json["avatar"].getStr(),
-        bot: json{"bot"}.getBool(),
-        system: json{"system"}.getBool(),
-        mfaEnabled: json{"mfa_enabled"}.getBool(),
-        locale: json{"locale"}.getStr(),
-        verified: json["verified"].getBool(),
-        email: json["email"].getStr(),
-        flags: json["flags"].getInt(),
-        premiumType: NitroSubscription(json["premium_type"].getInt()),
-        publicFlags: json["public_flags"].getInt()
+        id: getIDFromJson(user["id"].getStr()),
+        username: user["username"].getStr(),
+        discriminator: cushort(user["discriminator"].getInt()),
+        avatar: user["avatar"].getStr(),
+        bot: user{"bot"}.getBool(),
+        system: user{"system"}.getBool(),
+        mfaEnabled: user{"mfa_enabled"}.getBool(),
+        locale: user{"locale"}.getStr(),
+        verified: user{"verified"}.getBool(),
+        email: user{"email"}.getStr(),
+        flags: user{"flags"}.getInt(),
+        premiumType: NitroSubscription(user{"premium_type"}.getInt()),
+        publicFlags: user{"public_flags"}.getInt()
     )

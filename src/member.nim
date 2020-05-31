@@ -11,18 +11,18 @@ type GuildMember* = object of DiscordObject
     mute*: bool ## Whether the user is muted in voice channels.
 
 
-proc newGuildMember*(json: JsonNode): GuildMember =
+proc newGuildMember*(memberJson: JsonNode): GuildMember {.inline.} =
     var member = GuildMember(
-        nick: json["nick"].getStr(),
+        nick: memberJson{"nick"}.getStr(),
         #roles: seq[Role]
-        joinedAt: json["joined_at"].getStr(),
-        premiumSince: json["premium_since"].getStr(),
-        deaf: json["deaf"].getBool(),
-        mute: json["mute"].getBool()
+        joinedAt: memberJson["joined_at"].getStr(),
+        premiumSince: memberJson{"premium_since"}.getStr(),
+        deaf: memberJson["deaf"].getBool(),
+        mute: memberJson["mute"].getBool()
     )
-    
-    if (json.contains("user")):
-        member.user = newUser(json["user"])
+
+    if (memberJson.contains("user")):
+        member.user = newUser(memberJson["user"])
 
     return member
     
