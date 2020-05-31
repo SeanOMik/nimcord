@@ -1,4 +1,4 @@
-import websocket, asyncnet, asyncdispatch, json, httpClient, strformat, eventdispatcher, eventhandler
+import websocket, asyncnet, asyncdispatch, json, httpClient, strformat, eventdispatcher, eventhandler, streams
 
 type
     DiscordOpCode = enum
@@ -100,12 +100,27 @@ proc startConnection*(client: DiscordClient) {.async.} =
         e.msg = "Failed to get gateway url, token may of been incorrect!"
         raise e
 
-var bot = DiscordClient(token: 
-    "TOKEN")
+var tokenStream = newFileStream("../token.txt", fmWrite)
+var tkn: string
+if (not isNil(tokenStream)):
+    discard tokenStream.readLine(tkn)
+    tokenStream.close()
+
+var bot = DiscordClient(token: tkn)
 
 registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
-    let event: ReadyEvent = ReadyEvent(bEvt)
-    echo "Ready and connected!"
+    let event = ReadyEvent(bEvt)
+    echo "Ready and connected 1!"
+)
+
+registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
+    let event = ReadyEvent(bEvt)
+    echo "Ready and connected 2!"
+)
+
+registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
+    let event = MessageCreateEvent(bEvt)
+    echo "Message was created!"
 )
 
 waitFor bot.startConnection()
