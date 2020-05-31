@@ -63,55 +63,54 @@ type
         messageReference*: MessageReference
         flags*: int
 
-proc newMessage*(json: json.JsonNode): Message =
+proc newMessage*(messageJson: JsonNode): Message =
     var msg = Message(
-        id: getIDFromJson(json["id"].getStr()),
-        channelID: snowflake(json["channel_id"].getBiggestInt()),
-        guildID: snowflake(json{"guild_id"}.getBiggestInt()),
-        content: json["content"].getStr(),
-        timestamp: json["timestamp"].getStr(),
-        editedTimestamp: json{"edited_timestamp"}.getStr(),
-        tts: json["tts"].getBool(),
-        mentionEveryone: json["mention_everyone"].getBool(),
+        id: getIDFromJson(messageJson["id"].getStr()),
+        channelID: snowflake(messageJson["channel_id"].getBiggestInt()),
+        guildID: snowflake(messageJson{"guild_id"}.getBiggestInt()),
+        content: messageJson["content"].getStr(),
+        timestamp: messageJson["timestamp"].getStr(),
+        editedTimestamp: messageJson{"edited_timestamp"}.getStr(),
+        tts: messageJson["tts"].getBool(),
+        mentionEveryone: messageJson["mention_everyone"].getBool(),
         #mentionRoles
-        #mentionChannels
+        #mentionChannels?
         #attachments
         #embeds
-        #reactions
-        pinned: json["pinned"].getBool(),
-        webhookID: snowflake(json{"webhook_id"}.getBiggestInt()),
-        `type`: MessageType(json["type"].getInt()),
-        flags: json{"flags"}.getInt()
+        #reactions?
+        pinned: messageJson["pinned"].getBool(),
+        webhookID: snowflake(messageJson{"webhook_id"}.getBiggestInt()),
+        `type`: MessageType(messageJson["type"].getInt()),
+        flags: messageJson{"flags"}.getInt()
     )
 
-    if (json.contains("author")):
-        msg.author = newUser(json["author"])
-    if (json.contains("member")):
-        msg.member = newGuildMember(json["member"])
+    if (messageJson.contains("author")):
+        msg.author = newUser(messageJson["author"])
+    if (messageJson.contains("member")):
+        msg.member = newGuildMember(messageJson["member"])
 
-    if (json.contains("mentions")):
-        var userArray: seq[JsonNode]
-        json.getElems(json["mentions"], userArray)
+    if (messageJson.contains("mentions")):
+        let mentionsJson = messageJson["mentions"].getElems()
 
-        for index, userJson in userArray.pairs:
+        for userJson in mentionsJson.items:
             msg.mentions.add(newUser(userJson))
 
-    if (json.contains("activity")):
-        msg.activity = MessageActivity(`type`: MessageActivityType(json["activity"]["type"].getInt()), 
-            partyID: json["activity"]["party_id"].getStr())
-    if (json.contains("application")):
+    if (messageJson.contains("activity")):
+        msg.activity = MessageActivity(`type`: MessageActivityType(messageJson["activity"]["type"].getInt()), 
+            partyID: messageJson["activity"]["party_id"].getStr())
+    if (messageJson.contains("application")):
         msg.application = MessageApplication(
-            id: getIDFromJson(json["application"]["id"].getStr()),
-            coverImage: json["application"]{"cover_image"}.getStr(),
-            description: json["application"]["description"].getStr(),
-            icon: json["application"]{"icon"}.getStr(),
-            name: json["application"]["name"].getStr()
+            id: getIDFromJson(messageJson["application"]["id"].getStr()),
+            coverImage: messageJson["application"]{"cover_image"}.getStr(),
+            description: messageJson["application"]["description"].getStr(),
+            icon: messageJson["application"]{"icon"}.getStr(),
+            name: messageJson["application"]["name"].getStr()
         )
-    if (json.contains("message_reference")):
+    if (messageJson.contains("message_reference")):
         msg.messageReference = MessageReference(
-            messageID: getIDFromJson(json["message_reference"]{"message_id"}.getStr()),
-            channelID: getIDFromJson(json["message_reference"]["channel_id"].getStr()),
-            guildID: getIDFromJson(json["message_reference"]{"guild_id"}.getStr()),
+            messageID: getIDFromJson(messageJson["message_reference"]{"message_id"}.getStr()),
+            channelID: getIDFromJson(messageJson["message_reference"]["channel_id"].getStr()),
+            guildID: getIDFromJson(messageJson["message_reference"]{"guild_id"}.getStr()),
         )
 
     return msg
