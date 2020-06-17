@@ -1,4 +1,4 @@
-import websocket, asyncnet, asyncdispatch, json, httpClient, strformat, eventdispatcher, eventhandler, streams
+import websocket, asyncnet, asyncdispatch, json, httpClient, eventdispatcher, strformat, eventhandler, streams, nimcordutils, discordobject
 
 type
     DiscordOpCode = enum
@@ -23,6 +23,31 @@ type
         heartbeatInterval: int
         heartbeatAcked: bool
         lastSequence: int
+
+var globalClient: DiscordClient
+
+proc defaultHeaders*(client: DiscordClient, added: HttpHeaders = newHttpHeaders()): HttpHeaders = 
+    added.add("Authorization", fmt("Bot {client.token}"))
+    added.add("User-Agent", "NimCord (https://github.com/SeanOMik/nimcord, v0.0.0)")
+    added.add("X-RateLimit-Precision", "millisecond")
+    return added;
+
+proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders, objectID: snowflake = 0, bucketType: RateLimitBucketType = global, jsonBody: JsonNode = %*{}): JsonNode =    
+    var client = newHttpClient()
+    # Add headers
+    client.headers = headers
+
+    var strPayload: string
+    if ($jsonBody == "{}"):
+        strPayload = ""
+    else:
+        strPayload = $jsonBody
+
+    echo "Sending GET request, URL: ", endpoint, ", body: ", strPayload
+
+    waitForRateLimits(objectID, bucketType)
+
+    return handleResponse(client.request(endpoint, httpMethod, strPayload), objectId, bucketType)
 
 proc sendGatewayRequest*(client: DiscordClient, request: JsonNode, msg: string = "") {.async.} =
     if (msg.len == 0):
@@ -74,21 +99,18 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
                 handleDiscordEvent(json["d"], json["t"].getStr())
             else:
                 discard
-            
-proc endpoint*(url: string): string =
-    return fmt("https://discord.com/api/v6{url}")
 
 proc startConnection*(client: DiscordClient) {.async.} =
+    globalClient = client
+
     client.httpClient = newAsyncHttpClient()
     client.httpClient.headers = newHttpHeaders({"Authorization": fmt("Bot {client.token}")})
 
-    let urlResult = parseJson(await client.httpClient.getContent(endpoint("/gateway/bot")))
-    echo "Got result: ", $urlResult
-
+    let urlResult = sendRequest(endpoint("/gateway/bot"), HttpMethod.HttpGet, client.defaultHeaders())
     if (urlResult.contains("url")):
         let url = urlResult["url"].getStr()
 
-        client.ws = await newAsyncWebsocketClient(url[6..url.high], Port 443 ,
+        client.ws = await newAsyncWebsocketClient(url[6..url.high], Port 443,
             path = "/v=6&encoding=json", true)
         echo "Connected!"
 
