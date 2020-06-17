@@ -6,7 +6,7 @@ proc readyEvent(json: JsonNode) =
 
 proc messageCreateEvent(json: JsonNode) =
     let msg = newMessage(json)
-    let messageCreateEvnt = MessageCreateEvent(message: msg)
+    let messageCreateEvnt = MessageCreateEvent(message: msg, name: $EventType.evtMessageCreate)
     dispatchEvent(messageCreateEvnt)
 
 let internalEventTable: Table[string, proc(json: JsonNode) {.nimcall.}] = {
