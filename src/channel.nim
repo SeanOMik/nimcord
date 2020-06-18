@@ -143,3 +143,49 @@ proc deleteChannel*(channel: Channel) {.async.} =
     ## Delete the channel.
     discard sendRequest(endpoint("/channels/" & $channel.id), HttpDelete, 
         defaultHeaders(), channel.id, RateLimitBucketType.channel)
+
+type MessagesGetRequest* = object
+    ## Use this type to get a channel's messages by setting some of the fields.
+    ## You can only set one of `around`, `before`, or `after`.
+    around*: Option[snowflake]
+    before*: Option[snowflake]
+    after*: Option[snowflake]
+    limit*: Option[int]
+
+proc getMessages*(channel: Channel, request: MessagesGetRequest): seq[Message] =
+    ## Gets messages in the channel.
+    ## 
+    ## Examples:
+    ## .. code-block:: nim
+    ##   var chan = getChannel(703084913510973472)
+    ##   channel.getMessages(MessagesGetRequest(limit: some(15), before: some(723030179760570428)))
+
+    var url: string = endpoint("/channels/" & $channel.id & "/messages?")
+
+    if (request.around.isSome):
+        url = url & "around=" & $request.around.get()
+
+    # Raise some exceptions to make sure the user doesn't
+    # try to set more than one of these fields
+    if (request.before.isSome):
+        if (request.around.isSome):
+            raise newException(Defect, "You cannot get around and before a message! Choose one...")
+        url = url & "before=" & $request.before.get()
+
+    if (request.after.isSome):
+        if (request.around.isSome or request.before.isSome):
+            raise newException(Defect, "You cannot get around/before and after a message! Choose one...")
+        url = url & "after=" & $request.after.get()
+
+    if (request.limit.isSome):
+        # Add the `&` for the url if something else is set.
+        if (request.around.isSome or request.before.isSome or request.after.isSome):
+            url = url & "&"
+        
+        url = url & "limit=" & $request.limit.get()
+
+    let response = sendRequest(url, HttpGet, defaultHeaders(newHttpHeaders()),
+        channel.id, RateLimitBucketType.channel)
+
+    for message in response:
+        result.add(newMessage(message))

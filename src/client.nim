@@ -129,24 +129,25 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             discard channel.sendMessage("PONG")
     elif (event.message.content.startsWith("?modifyChannelTopic")):
         let modifyTopic = event.message.content.substr(20)
+
         var channel: Channel = event.message.getMessageChannel(event.client.cache)
         if (channel != nil):
             discard channel.sendMessage("Modifing Channel!")
             discard channel.modifyChannel(ChannelModify(topic: some(modifyTopic)))
     elif (event.message.content.startsWith("?deleteChannel")):
         let channelID = getIDFromJson(event.message.content.substr(15))
-
         var channel: Channel = event.client.cache.getChannel(channelID)
+        
         if (channel != nil):
             discard channel.sendMessage("Deleting Channel!")
             discard channel.deleteChannel()
             discard channel.sendMessage("Deleted Channel!")
+    elif (event.message.content.startsWith("?getMessages")):
+        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        if (channel != nil):
+            discard channel.getMessages(MessagesGetRequest(limit: some(15), before: some(event.message.id)))
+        else:
+            echo "Failed to get channel!"
 )
-
-#[ registerEventListener(EventType.evtGuildCreate, proc(bEvt: BaseEvent) =
-    let event = GuildCreateEvent(bEvt)
-
-    echo "Guild has ", event.guild.members.len, " members and ", event.guild.channels.len, " channels..."
-) ]#
 
 waitFor bot.startConnection()
