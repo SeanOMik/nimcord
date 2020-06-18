@@ -3,7 +3,7 @@ from discordobject import snowflake
 
 proc getIDFromJson*(str: string): uint64 =
     var num: uint64
-    discard parseOct(str, num)
+    discard parseBiggestUInt(str, num)
     return num
 
 proc endpoint*(url: string): string =
