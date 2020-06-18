@@ -56,7 +56,7 @@ proc `$`*(emoji: Emoji): string =
             result = ":" & result & ":"
 
 proc `==`*(a: Emoji, b: Emoji): bool =
-    ## Check if two `Emoji`s are equal.
+    ## Check if two Emojis are equal.
     # Check if emojis have name but no id
     if (a.id == 0 and b.id == 0 and a.name.isEmptyOrWhitespace() and b.name.isEmptyOrWhitespace()):
         return a.name == b.name
