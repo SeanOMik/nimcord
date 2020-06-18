@@ -8,9 +8,22 @@
             "name": "Debug Nim Project",
             "type": "gdb",
             "request": "launch",
-            "target": "./src/client.exe",
-            "cwd": "${workspaceRoot}",
-            "valuesFormatting": "parseText"
+            "program": "${workspaceFolder}/src/client.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "valuesFormatting": "parseText",
+            "MIMode": "gdb",
+            "miDebuggerPath": "D:/Code/nim/nim-1.2.0/dist/mingw64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
     ]
 }
