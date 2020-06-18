@@ -81,3 +81,16 @@ proc addDenyPermission*(perms: Permissions, perm: Permission): Permissions =
         perms.allowPerms = perms.allowPerms and (not uint(perm))
 
     perms.denyPerms = perms.denyPerms or uint(perm)
+
+proc permissionsToJson*(perms: Permissions): JsonNode =
+    ## Convert `Permissions` to json.
+    let json = %* {
+        "id": perms.roleUserID,
+        "allow": perms.allowPerms,
+        "deny": perms.denyPerms
+    }
+
+    if (perms.permissionType == PermissionType.permTypeMember):
+        json.add("type", %"member")
+    else:
+        json.add("type", %"role")
