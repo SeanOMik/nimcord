@@ -1,4 +1,4 @@
-import json, discordobject, nimcordutils, user, member
+import json, discordobject, nimcordutils, user, member, httpcore, asyncdispatch, emoji
 
 type 
     MessageType* = enum
@@ -38,6 +38,13 @@ type
         messageID: snowflake
         channelID: snowflake
         guildID: snowflake
+
+    MessageFlags* = enum
+        msgFlagCrossposted = 0,
+        msgFlagIsCrossPost = 1,
+        msgFlagSuppressEmbeds = 2,
+        msgFlagSourceMsgDeleted = 3,
+        msgFlagUrgent = 4
 
     Message* = object of DiscordObject
         channelID*: snowflake
@@ -114,3 +121,27 @@ proc newMessage*(messageJson: JsonNode): Message =
         )
 
     return msg
+
+proc addReaction*(message: Message, emoji: Emoji) {.async.} =
+    ## Create a reaction for the message. This endpoint requires the 
+    ## `READ_MESSAGE_HISTORY` permission to be present on the current
+    ## user. Additionally, if nobody else has reacted to the message 
+    ## using this emoji, this endpoint requires the 'ADD_REACTIONS' 
+    ## permission to be present on the current user.
+    discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
+        "/reactions/" & emoji.toUrlEncoding() & "/@me"), HttpPut, defaultHeaders(),
+        message.channelID, RateLimitBucketType.channel)
+
+#TODO: Embeds and maybe flags?
+proc editMessage*(message: Message, content: string): Future[Message] {.async.} =
+    let jsonBody = %*{"content": content}
+    return newMessage(sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id),
+        HttpPatch, defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), 
+        message.channelID, RateLimitBucketType.channel, jsonBody))
+
+proc deleteMessage*(message: Message) =
+    ## Delete a message. If operating on a guild channel and trying to delete
+    ## a message that was not sent by the current user, this endpoint requires
+    ## the `MANAGE_MESSAGES` permission.
+    discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id), 
+        HttpDelete, defaultHeaders(), message.channelID, RateLimitBucketType.channel)
