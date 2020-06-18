@@ -29,15 +29,15 @@ type
         partyID*: string
 
     MessageApplication* = ref object of DiscordObject
-        coverImage: string
-        description: string
-        icon: string
-        name: string
+        coverImage*: string
+        description*: string
+        icon*: string
+        name*: string
 
     MessageReference* = ref object
-        messageID: snowflake
-        channelID: snowflake
-        guildID: snowflake
+        messageID*: snowflake
+        channelID*: snowflake
+        guildID*: snowflake
 
     MessageFlags* = enum
         msgFlagCrossposted = 0,
