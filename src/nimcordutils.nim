@@ -110,13 +110,13 @@ proc waitForRateLimits*(objectID: snowflake, bucketType: RateLimitBucketType) =
             discard sleepAsync(millisecondTime)
 
 proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders, objectID: snowflake = 0, 
-    bucketType: RateLimitBucketType = global, jsonBody: JsonNode = %*{}): JsonNode =    
+    bucketType: RateLimitBucketType = global, jsonBody: JsonNode = nil): JsonNode =    
     var client = newHttpClient()
     # Add headers
     client.headers = headers
 
     var strPayload: string
-    if ($jsonBody == "{}"):
+    if (jsonBody == nil):
         strPayload = ""
     else:
         strPayload = $jsonBody

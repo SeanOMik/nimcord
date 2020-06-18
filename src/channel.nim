@@ -44,11 +44,27 @@ type
         #permissionOverwrites*: seq[Permissions] ## Explicit permission overwrites for members and roles.
         parentID*: Option[snowflake]
 
+    Invite* = object
+        ## Represents a code that when used, adds a user to a guild or group DM channel.
+        code*: string ## The invite code (unique ID)
+        guildID*: snowflake ## The guild this invite is for
+        channel*: Channel ## The channel this invite is for
+        inviter*: User ## The user who created the invite
+        targetUser*: User ## The target user for this invite
+        #targetUserType* # Not sure if this is needed because it can only be `1`
+        approximatePresenceCount*: int ## Approximate count of online members (only present when target_user is set)
+        approximateMemberCount*: int ## Approximate count of total members
+        uses*: int ## Number of times this invite has been used
+        maxUsers*: int ## Max number of times this invite can be used
+        maxAge*: int ## Duration (in seconds) after which the invite expires
+        temporary*: bool ## Whether this invite only grants temporary membership
+        createdAt: string ## When this invite was created
+
 proc newChannel*(channel: JsonNode): Channel {.inline.} =
     ## Parses the channel from json.
     var chan = Channel(
         id: getIDFromJson(channel["id"].getStr()),
-        `type`: ChannelType(channel["type"].getInt()),
+        `type`: ChannelType(channel["type"].getInt())
     )
 
     if (channel.contains("guild_id")):
@@ -87,6 +103,34 @@ proc newChannel*(channel: JsonNode): Channel {.inline.} =
 
     return chan
 
+proc newInvite*(json: JsonNode): Invite {.inline.} =
+    ## Parses an invite from json.
+    var invite = Invite(
+        code: json["code"].getStr(),
+        channel: newChannel(json["channel"])
+    )
+    if (json.contains("guild")):
+        invite.guildID = getIDFromJson(json["guild"]["id"].getStr())
+    if (json.contains("target_user")):
+        invite.targetUser = newUser(json["target_user"])
+    if (json.contains("approximate_presence_count")):
+        invite.approximatePresenceCount = json["approximate_presence_count"].getInt()
+    if (json.contains("approximate_member_count")):
+        invite.approximateMemberCount = json["approximate_member_count"].getInt()
+    if (json.contains("uses")):
+        invite.uses = json["uses"].getInt()
+    if (json.contains("max_uses")):
+        invite.maxUsers = json["max_uses"].getInt()
+    if (json.contains("max_age")):
+        invite.maxAge = json["max_age"].getInt()
+    if (json.contains("temporary")):
+        invite.temporary = json["temporary"].getBool()
+    if (json.contains("created_at")):
+        invite.createdAt = json["created_at"].getStr()
+
+    return invite
+
+#TODO: Embeds, and files
 proc sendMessage*(channel: Channel, content: string, tts: bool = false): Message =
     ## Send a message through the channel. 
     let messagePayload = %*{"content": content, "tts": tts}
@@ -153,7 +197,7 @@ type MessagesGetRequest* = object
     limit*: Option[int]
 
 proc getMessages*(channel: Channel, request: MessagesGetRequest): seq[Message] =
-    ## Gets messages in the channel.
+    ## Gets messages from the channel.
     ## 
     ## Examples:
     ## .. code-block:: nim
@@ -189,3 +233,113 @@ proc getMessages*(channel: Channel, request: MessagesGetRequest): seq[Message] =
 
     for message in response:
         result.add(newMessage(message))
+
+proc getMessage*(channel: Channel, messageID: snowflake): Message =
+    ## Requests a message from the channel via the Discord REST API.
+    return newMessage(sendRequest(endpoint("/channels/" & $channel.id & "/messages/" & $messageID), HttpGet, 
+        defaultHeaders(), channel.id, RateLimitBucketType.channel))
+
+
+proc bulkDeleteMessages*(channel: Channel, messageIDs: seq[snowflake]) {.async.} =
+    ## Bulk delete channel messages. This endpoint can only delete 2-100 messages.
+    ## This proc takes a seq[snowflakes] represtenting the message's IDs.
+    ## The messages can not be older than 2 weeks!
+    ## 
+    ## See also:
+    ## * `bulkDeleteMessages(channel: Channel, messages: seq[Message])`_
+    # Remove the `@` from the string conversion
+    let stringPayload: string = ($messageIDs).substr(1)
+    let jsonPayload = %*{"messages": parseJson(stringPayload)}
+
+    discard sendRequest(endpoint("/channels/" & $channel.id & "/messages/bulk-delete"), HttpPost, 
+        defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), channel.id, 
+        RateLimitBucketType.channel, jsonPayload)
+    
+
+proc bulkDeleteMessages*(channel: Channel, messages: seq[Message]) {.async.} =
+    ## Delete multiple messages in a single request. This endpoint can only delete 2-100 messages.
+    ## This proc takes a seq[Message] represtenting the message's you want to delete.
+    ## The messages can not be older than 2 weeks!
+    ## 
+    ## See also:
+    ## * `bulkDeleteMessages(channel: Channel, messageIDs: seq[snowflake])`_
+    var messageIDs: seq[snowflake]
+    for msg in messages:
+        messageIDs.add(msg.id)
+
+    waitFor channel.bulkDeleteMessages(messageIDs)
+
+
+#TODO: https://discord.com/developers/docs/resources/channel#edit-channel-permissions
+
+proc getChannelInvites*(channel: Channel): seq[Invite] =
+    ## Returns a list of invite objects (with invite metadata) for the channel. 
+    ## Only usable for guild channels. Requires the MANAGE_CHANNELS permission.
+    let json = sendRequest(endpoint("/channels/" & $channel.id & "/invites"), HttpGet, 
+        defaultHeaders(), channel.id, RateLimitBucketType.channel)
+
+    for invite in json:
+        result.add(newInvite(invite))
+
+type CreateInviteFields* = object
+    maxAge: Option[int] ## Duration of invite in seconds before expiry, or 0 for never
+    maxUses: Option[int] ## Max number of uses or 0 for unlimited
+    temporary: Option[bool] ## Whether this invite only grants temporary membership
+    unique: Option[bool] ## If true, don't try to reuse a similar invite (useful for creating many unique one time use invites)
+    targetUser: Option[snowflake] ## The target user id for this invite
+    targetUserType: Option[int] ## The type of target user for this invite
+
+proc createChannelInvite*(channel: Channel, fields: CreateInviteFields): Invite =
+    ## Create a new invite object for the channel. Only usable for guild channels. 
+    ## Requires the CREATE_INSTANT_INVITE permission.
+    ## 
+    ## Examples:
+    ## .. code-block:: nim
+    ##   var chan = getChannel(703084913510973472)
+    ##   # Create an invite that lasts 1 day, and can only be used 10 times
+    ##   channel.createChannelInvite(CreateInviteFields(maxAge: 3600, maxUses: 10))
+    var createPayload = %*{}
+
+    if (fields.maxAge.isSome):
+        createPayload.add("max_age", %fields.maxAge.get())
+    if (fields.maxUses.isSome):
+        createPayload.add("max_uses", %fields.maxUses.get())
+    if (fields.temporary.isSome):
+        createPayload.add("temporary", %fields.temporary.get())
+    if (fields.unique.isSome):
+        createPayload.add("unique", %fields.unique.get())
+    if (fields.targetUser.isSome):
+        createPayload.add("target_user", %fields.targetUser.get())
+    # Not sure if its needed because it can only be `1`
+    #[ if (fields.targetUserType.isSome):
+        createPayload.add("target_user_type", %fields.targetUserType.get()) ]#
+
+    return newInvite(sendRequest(endpoint("/channels/" & $channel.id & "/invites"), HttpPost, 
+        defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), channel.id, 
+        RateLimitBucketType.channel, createPayload))
+
+#TODO: https://discord.com/developers/docs/resources/channel#delete-channel-permission
+
+proc triggerTypingIndicator*(channel: Channel) {.async.} =
+    ## Post a typing indicator for the specified channel.
+    discard sendRequest(endpoint("/channels/" & $channel.id & "/typing"), HttpPost, 
+        defaultHeaders(), channel.id, RateLimitBucketType.channel)
+
+proc getPinnedMessages*(channel: Channel): seq[Message] =
+    ## Returns all pinned messages in the channel
+    let json = sendRequest(endpoint("/channels/" & $channel.id & "/pins"), HttpGet, 
+        defaultHeaders(), channel.id, RateLimitBucketType.channel)
+    
+    for message in json:
+        result.add(newMessage(message))
+
+proc groupDMAddRecipient*(channel: Channel, user: User, accessToken: string, nick: string) {.async.} =
+    ## Adds a recipient to a Group DM using their access token.
+    let jsonBody = %* {"access_token": accessToken, "nick": nick}
+    discard sendRequest(endpoint("/channels/" & $channel.id & "/recipients/" & $user.id), 
+        HttpPut, defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), 
+        channel.id, RateLimitBucketType.channel, jsonBody)
+    
+proc groupDMRemoveRecipient*(channel: Channel, user: User) {.async.} =
+    discard sendRequest(endpoint("/channels/" & $channel.id & "/recipients/" & $user.id), 
+        HttpPut, defaultHeaders(), channel.id, RateLimitBucketType.channel)

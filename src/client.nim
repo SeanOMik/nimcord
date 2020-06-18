@@ -146,8 +146,15 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
         var channel: Channel = event.message.getMessageChannel(event.client.cache)
         if (channel != nil):
             discard channel.getMessages(MessagesGetRequest(limit: some(15), before: some(event.message.id)))
-        else:
-            echo "Failed to get channel!"
+    elif (event.message.content.startsWith("?bulkDeleteMessages")):
+        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        if (channel != nil):
+            var amount: int = 25
+            if (event.message.content.len > 19):
+                amount = parseIntEasy(event.message.content.substr(20))
+            let messages = channel.getMessages(MessagesGetRequest(limit: some(amount), before: some(event.message.id)))
+            discard channel.bulkDeleteMessages(messages)
+            
 )
 
 waitFor bot.startConnection()
