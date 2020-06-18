@@ -24,17 +24,17 @@ type
         listen = 3,
         joinRequest = 5
 
-    MessageActivity* = object
+    MessageActivity* = ref object
         `type`*: MessageActivityType
         partyID*: string
 
-    MessageApplication* = object of DiscordObject
+    MessageApplication* = ref object of DiscordObject
         coverImage: string
         description: string
         icon: string
         name: string
 
-    MessageReference* = object
+    MessageReference* = ref object
         messageID: snowflake
         channelID: snowflake
         guildID: snowflake
@@ -130,13 +130,19 @@ proc addReaction*(message: Message, emoji: Emoji) {.async.} =
     ## permission to be present on the current user.
     ## 
     ## See also:
-    ## * `removeReaction(message: Message, emoji: Emoji)`_
+    ## * `removeReaction<#removeReaction,Message,Emoji>`_
     discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
         "/reactions/" & emoji.toUrlEncoding() & "/@me"), HttpPut, defaultHeaders(),
         message.channelID, RateLimitBucketType.channel)
 
 proc removeReaction*(message: Message, emoji: Emoji) {.async.} =
     ## Delete a reaction the bot user has made for the message.
+    ## 
+    ## See also:
+    ## * `addReaction<#addReaction,Message,Emoji>`_
+    ## * `removeUserReaction<#removeUserReaction,Message,Emoji,User>`_
+    ## * `removeAllReactions<#removeAllReactions,Message>`_
+    ## * `removeAllReactions<#removeAllReactions,Message,Emoji>`_
     discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
         "/reactions/" & emoji.toUrlEncoding() & "/@me"), HttpDelete, defaultHeaders(),
         message.channelID, RateLimitBucketType.channel)
@@ -144,6 +150,12 @@ proc removeReaction*(message: Message, emoji: Emoji) {.async.} =
 proc removeUserReaction*(message: Message, emoji: Emoji, user: User) {.async.} =
     ## Deletes another user's reaction. This endpoint requires the 
     ## `MANAGE_MESSAGES` permission to be present on the current user
+    ## 
+    ## See also:
+    ## * `addReaction<#addReaction,Message,Emoji>`_
+    ## * `removeReaction<#removeReaction,Message,Emoji>`_
+    ## * `removeAllReactions<#removeAllReactions,Message>`_
+    ## * `removeAllReactions<#removeAllReactions,Message,Emoji>`_
     discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
         "/reactions/" & emoji.toUrlEncoding() & "/" & $user.id), HttpDelete, defaultHeaders(),
         message.channelID, RateLimitBucketType.channel)
@@ -185,16 +197,28 @@ proc getReactants*(message: Message, emoji: Emoji, request: ReactantsGetRequest)
     for user in json:
         result.add(newUser(user))
 
-proc removeAllReactions*(message: Message) {.asnyc.} =
+proc removeAllReactions*(message: Message) {.async.} =
     ## Deletes all reactions on a message. This endpoint requires the 
     ## `MANAGE_MESSAGES` permission to be present on the current user.
+    ## 
+    ## See also:
+    ## * `addReaction<#addReaction,Message,Emoji>`_
+    ## * `removeReaction<#removeReaction,Message,Emoji>`_
+    ## * `removeUserReaction<#removeUserReaction,Message,Emoji,User>`_
+    ## * `removeAllReactions<#removeAllReactions,Message,Emoji>`_
     discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
         "/reactions/"), HttpDelete, defaultHeaders(), message.channelID, RateLimitBucketType.channel)
 
-proc removeAllReactions*(message: Message, emoji: Emoji) {.asnyc.} =
+proc removeAllReactions*(message: Message, emoji: Emoji) {.async.} =
     ## Deletes all the reactions for a given emoji on a message. This 
     ## endpoint requires the `MANAGE_MESSAGES` permission to be present
     ## on the current user.
+    ## 
+    ## See also:
+    ## * `addReaction<#addReaction,Message,Emoji>`_
+    ## * `removeReaction<#removeReaction,Message,Emoji>`_
+    ## * `removeUserReaction<#removeUserReaction,Message,Emoji,User>`_
+    ## * `removeAllReactions<#removeAllReactions,Message>`_
     discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
         "/reactions/" & emoji.toUrlEncoding()), HttpDelete, defaultHeaders(), message.channelID, 
         RateLimitBucketType.channel)
@@ -211,5 +235,8 @@ proc deleteMessage*(message: Message) {.async.} =
     ## Delete a message. If operating on a guild channel and trying to delete
     ## a message that was not sent by the current user, this endpoint requires
     ## the `MANAGE_MESSAGES` permission.
+    ## 
+    ## See also:
+    ## * `deleteMessage<#deleteMessage,Message>`_
     discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id), 
         HttpDelete, defaultHeaders(), message.channelID, RateLimitBucketType.channel)
