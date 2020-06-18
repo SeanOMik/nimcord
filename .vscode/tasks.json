@@ -4,13 +4,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "taskName": "Run client.nim",
-            "command": "nim",
-            "args": ["c", "-d:ssl", "-r", "src/client.nim"],
-            "options": {
-                "cwd": "${workspaceRoot}"
-            },
+            "label": "Build Nim Project",
             "type": "shell",
+            "command": "nim compile -d:ssl -d:debug --debugger:native ./src/client.nim",
             "group": {
                 "kind": "build",
                 "isDefault": true
