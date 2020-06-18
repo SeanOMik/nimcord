@@ -66,8 +66,8 @@ type
 proc newMessage*(messageJson: JsonNode): Message =
     var msg = Message(
         id: getIDFromJson(messageJson["id"].getStr()),
-        channelID: snowflake(messageJson["channel_id"].getBiggestInt()),
-        guildID: snowflake(messageJson{"guild_id"}.getBiggestInt()),
+        channelID: getIDFromJson(messageJson["channel_id"].getStr()),
+        guildID: getIDFromJson(messageJson{"guild_id"}.getStr()),
         content: messageJson["content"].getStr(),
         timestamp: messageJson["timestamp"].getStr(),
         editedTimestamp: messageJson{"edited_timestamp"}.getStr(),
@@ -79,7 +79,7 @@ proc newMessage*(messageJson: JsonNode): Message =
         #embeds
         #reactions?
         pinned: messageJson["pinned"].getBool(),
-        webhookID: snowflake(messageJson{"webhook_id"}.getBiggestInt()),
+        webhookID: getIDFromJson(messageJson{"webhook_id"}.getStr()),
         `type`: MessageType(messageJson["type"].getInt()),
         flags: messageJson{"flags"}.getInt()
     )
