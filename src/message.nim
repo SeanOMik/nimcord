@@ -1,4 +1,4 @@
-import json, discordobject, nimcordutils, user, member, httpcore, asyncdispatch, emoji
+import json, discordobject, nimcordutils, user, member, httpcore, asyncdispatch, emoji, options
 
 type 
     MessageType* = enum
@@ -46,7 +46,7 @@ type
         msgFlagSourceMsgDeleted = 3,
         msgFlagUrgent = 4
 
-    Message* = object of DiscordObject
+    Message* = ref object of DiscordObject
         channelID*: snowflake
         guildID*: snowflake
         author*: User
@@ -128,9 +128,76 @@ proc addReaction*(message: Message, emoji: Emoji) {.async.} =
     ## user. Additionally, if nobody else has reacted to the message 
     ## using this emoji, this endpoint requires the 'ADD_REACTIONS' 
     ## permission to be present on the current user.
+    ## 
+    ## See also:
+    ## * `removeReaction(message: Message, emoji: Emoji)`_
     discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
         "/reactions/" & emoji.toUrlEncoding() & "/@me"), HttpPut, defaultHeaders(),
         message.channelID, RateLimitBucketType.channel)
+
+proc removeReaction*(message: Message, emoji: Emoji) {.async.} =
+    ## Delete a reaction the bot user has made for the message.
+    discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
+        "/reactions/" & emoji.toUrlEncoding() & "/@me"), HttpDelete, defaultHeaders(),
+        message.channelID, RateLimitBucketType.channel)
+
+proc removeUserReaction*(message: Message, emoji: Emoji, user: User) {.async.} =
+    ## Deletes another user's reaction. This endpoint requires the 
+    ## `MANAGE_MESSAGES` permission to be present on the current user
+    discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
+        "/reactions/" & emoji.toUrlEncoding() & "/" & $user.id), HttpDelete, defaultHeaders(),
+        message.channelID, RateLimitBucketType.channel)
+
+type ReactantsGetRequest* = object
+    ## Use this type to get a messages's reactants by setting 
+    ## some of the fields.
+    ## You can only set one of `before` and `after`.
+    before*: Option[snowflake]
+    after*: Option[snowflake]
+    limit*: Option[int]
+
+proc getReactants*(message: Message, emoji: Emoji, request: ReactantsGetRequest): seq[User] =
+    ## Get a list of users that reacted with this emoji.
+    
+    var url: string = endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
+        "/reactions/" & emoji.toUrlEncoding())
+
+    # Raise some exceptions to make sure the user doesn't
+    # try to set more than one of these fields
+    if (request.before.isSome):
+        url = url & "before=" & $request.before.get()
+
+    if (request.after.isSome):
+        if (request.before.isSome):
+            raise newException(Defect, "You cannot get before and after a message! Choose one...")
+        url = url & "after=" & $request.after.get()
+
+    if (request.limit.isSome):
+        # Add the `&` for the url if something else is set.
+        if (request.before.isSome or request.after.isSome):
+            url = url & "&"
+        
+        url = url & "limit=" & $request.limit.get()
+
+    let json = sendRequest(url, HttpGet, defaultHeaders(), message.channelID, 
+        RateLimitBucketType.channel)
+    
+    for user in json:
+        result.add(newUser(user))
+
+proc removeAllReactions*(message: Message) {.asnyc.} =
+    ## Deletes all reactions on a message. This endpoint requires the 
+    ## `MANAGE_MESSAGES` permission to be present on the current user.
+    discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
+        "/reactions/"), HttpDelete, defaultHeaders(), message.channelID, RateLimitBucketType.channel)
+
+proc removeAllReactions*(message: Message, emoji: Emoji) {.asnyc.} =
+    ## Deletes all the reactions for a given emoji on a message. This 
+    ## endpoint requires the `MANAGE_MESSAGES` permission to be present
+    ## on the current user.
+    discard sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id & 
+        "/reactions/" & emoji.toUrlEncoding()), HttpDelete, defaultHeaders(), message.channelID, 
+        RateLimitBucketType.channel)
 
 #TODO: Embeds and maybe flags?
 proc editMessage*(message: Message, content: string): Future[Message] {.async.} =
@@ -139,7 +206,7 @@ proc editMessage*(message: Message, content: string): Future[Message] {.async.} 
         HttpPatch, defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), 
         message.channelID, RateLimitBucketType.channel, jsonBody))
 
-proc deleteMessage*(message: Message) =
+proc deleteMessage*(message: Message) {.async.} =
     ## Delete a message. If operating on a guild channel and trying to delete
     ## a message that was not sent by the current user, this endpoint requires
     ## the `MANAGE_MESSAGES` permission.

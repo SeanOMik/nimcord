@@ -1,7 +1,7 @@
 import json, discordobject, nimcordutils, user, httpcore, asyncdispatch, strutils, uri
 
 type 
-    Emoji* = object of DiscordObject
+    Emoji* = ref object of DiscordObject
         name*: string
         roles*: seq[snowflake]
         user*: User
