@@ -1,6 +1,6 @@
-import websocket, asyncnet, asyncdispatch, json, httpClient, eventdispatcher, strformat
+import websocket, asyncdispatch, json, httpClient, eventdispatcher, strformat
 import eventhandler, streams, nimcordutils, discordobject, user, cache, clientobjects
-import strutils, channel, options
+import strutils, channel, options, message, emoji
 
 const 
     nimcordMajor = 0
@@ -154,7 +154,12 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
                 amount = parseIntEasy(event.message.content.substr(20))
             let messages = channel.getMessages(MessagesGetRequest(limit: some(amount), before: some(event.message.id)))
             discard channel.bulkDeleteMessages(messages)
-            
+    elif (event.message.content.startsWith("?reactToMessage")):
+        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        if (channel != nil):
+            let emojis = @[newEmoji("⏮️"), newEmoji("⬅️"), newEmoji("⏹️"), newEmoji("➡️"), newEmoji("⏭️")]
+            for emoji in emojis:
+                discard event.message.addReaction(emoji)
 )
 
 waitFor bot.startConnection()
