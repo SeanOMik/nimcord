@@ -273,8 +273,12 @@ proc bulkDeleteMessages*(channel: Channel, messages: seq[Message]) {.async.} =
 
     waitFor channel.bulkDeleteMessages(messageIDs)
 
-
-#TODO: https://discord.com/developers/docs/resources/channel#edit-channel-permissions
+proc editChannelPermissions*(channel: Channel, perms: Permissions) {.async.} =
+    ## Edit the channel permission overwrites for a user or role in a channel. 
+    ## Only usable for guild channels. Requires the `MANAGE_ROLES` permission.
+    discard sendRequest(endpoint("/channels/" & $channel.id & "/permissions/" & $perms.roleUserID), 
+        HttpPost, defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), channel.id, 
+        RateLimitBucketType.channel, perms.permissionsToJson())
 
 proc getChannelInvites*(channel: Channel): seq[Invite] =
     ## Returns a list of invite objects (with invite metadata) for the channel. 
