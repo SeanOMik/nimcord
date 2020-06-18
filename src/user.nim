@@ -25,7 +25,7 @@ proc newUser*(user: JsonNode): User {.inline.} =
     return User(
         id: getIDFromJson(user["id"].getStr()),
         username: user["username"].getStr(),
-        discriminator: cushort(user["discriminator"].getInt()),
+        discriminator: cushort(parseIntEasy(user["discriminator"].getStr())),
         avatar: user["avatar"].getStr(),
         bot: user{"bot"}.getBool(),
         system: user{"system"}.getBool(),
