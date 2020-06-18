@@ -107,7 +107,7 @@ proc waitForRateLimits*(objectID: snowflake, bucketType: RateLimitBucketType) =
 
         if (millisecondTime > 0):
             echo fmt("Rate limit wait time: {millisecondTime} miliseconds")
-            discard sleepAsync(millisecondTime)
+            waitFor sleepAsync(millisecondTime)
 
 proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders, objectID: snowflake = 0, 
     bucketType: RateLimitBucketType = global, jsonBody: JsonNode = nil): JsonNode =    
