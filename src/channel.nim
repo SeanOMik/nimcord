@@ -341,5 +341,6 @@ proc groupDMAddRecipient*(channel: Channel, user: User, accessToken: string, nic
         channel.id, RateLimitBucketType.channel, jsonBody)
     
 proc groupDMRemoveRecipient*(channel: Channel, user: User) {.async.} =
+    ## Removes a recipient from a Group DM.
     discard sendRequest(endpoint("/channels/" & $channel.id & "/recipients/" & $user.id), 
         HttpPut, defaultHeaders(), channel.id, RateLimitBucketType.channel)
