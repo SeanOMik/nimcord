@@ -6,7 +6,7 @@ type
         nitroClassic = 1,
         nitro = 2
 
-    User* = object of DiscordObject
+    User* = ref object of DiscordObject
         ## This type is a discord user.
         username*: string ## The user's username, not unique across the platform.
         discriminator*: cushort ## The user's 4-digit discord-tag.

@@ -1,6 +1,6 @@
 import discordobject, user, json
 
-type GuildMember* = object of DiscordObject
+type GuildMember* = ref object of DiscordObject
     ## This type is a guild member.
     user*: User ## The user this guild member represents.
     nick*: string ## This users guild nickname.
