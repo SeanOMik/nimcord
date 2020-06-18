@@ -69,21 +69,29 @@ proc waitForRateLimits*(objectID: snowflake, bucketType: RateLimitBucketType) =
     else:
         case bucketType:
             of RateLimitBucketType.channel:
-                rlmt = channelRatelimitBucket[objectID]
-                discard
+                if (channelRatelimitBucket.hasKey(objectID)):
+                    rlmt = channelRatelimitBucket[objectID]
+                else:
+                    channelRatelimitBucket.add(objectID, newRateLimit())
+                    rlmt = channelRatelimitBucket[objectID]
             of RateLimitBucketType.guild:
-                rlmt = guildRatelimitBucket[objectID]
-                discard
+                if (guildRatelimitBucket.hasKey(objectID)):
+                    rlmt = guildRatelimitBucket[objectID]
+                else:
+                    guildRatelimitBucket.add(objectID, newRateLimit())
+                    rlmt = guildRatelimitBucket[objectID]
             of RateLimitBucketType.webhook:
-                rlmt = webhookRatelimitBucket[objectID]
-                discard
+                if (webhookRatelimitBucket.hasKey(objectID)):
+                    rlmt = webhookRatelimitBucket[objectID]
+                else:
+                    webhookRatelimitBucket.add(objectID, newRateLimit())
+                    rlmt = webhookRatelimitBucket[objectID]
             of RateLimitBucketType.global:
                 rlmt = globalRateLimit
-                discard
     
-    if (rlmt.remainingLimit == 0):
+    if (rlmt != nil and rlmt.remainingLimit == 0):
         let millisecondTime: float = rlmt.ratelimitReset * 1000 - epochTime() * 1000
 
         if (millisecondTime > 0):
             echo fmt("Rate limit wait time: {millisecondTime} miliseconds")
-            discard sleepAsync(millisecondTime)
+            discard sleepAsync(millisecondTime)
