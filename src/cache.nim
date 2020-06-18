@@ -1,4 +1,4 @@
-import sequtils, message, member, channel, guild, discordobject, nimcordutils, clientobjects, httpcore
+import sequtils, message, member, channel, guild, discordobject, nimcordutils, httpcore
 
 type Cache* = ref object
     members*: seq[GuildMember]
