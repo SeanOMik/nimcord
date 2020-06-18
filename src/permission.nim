@@ -44,6 +44,10 @@ type
         denyPerms*: uint
         permissionType*: PermissionType
 
+proc newPermissions*(id: snowflake, `type`: PermissionType, byteSet: uint): Permissions =
+    ## Create a new `Permissions` using an id, type, and byte set.
+    result = Permissions(roleUserID: id, permissionType: `type`, allowPerms: byteSet)
+
 proc newPermissions*(json: JsonNode): Permissions =
     ## Parses a `Permissions` from json.
     result = Permissions(
