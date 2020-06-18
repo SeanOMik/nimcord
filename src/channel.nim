@@ -26,10 +26,10 @@ type
         rateLimitPerUser*: int ## Amount of seconds a user has to wait before sending another message (0-21600); bots, as well as users with the permission manage_messages or manage_channel, are unaffected.
         recipients*: seq[User] ## The recipients of the DM
         icon*: string ## Icon hash
-        ownerID: snowflake ## ID of the DM creator
-        applicationID: snowflake ## Application id of the group DM creator if it is bot-created
-        parentID: snowflake ## ID of the parent category for a channel
-        lastPinTimestamp: string ## When the last pinned message was pinned
+        ownerID*: snowflake ## ID of the DM creator
+        applicationID*: snowflake ## Application id of the group DM creator if it is bot-created
+        parentID*: snowflake ## ID of the parent category for a channel
+        lastPinTimestamp*: string ## When the last pinned message was pinned
     
     ChannelModify* = ref object
         ## Use this type to modify a channel by setting each fields.
