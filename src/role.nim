@@ -16,7 +16,8 @@ proc newRole*(json: JsonNode): Role =
         color: uint(json["color"].getInt()),
         hoist: json["hoist"].getBool(),
         position: uint(json["position"].getInt()),
-        permissions: newPermissions(json["permissions"]),
         managed: json["managed"].getBool(),
         mentionable: json["mentionable"].getBool()
     )
+
+    result.permissions = newPermissions(result.id, PermissionType.permTypeRole, uint(json["permissions"].getInt()))
