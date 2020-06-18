@@ -1,4 +1,4 @@
-import json, discordobject, nimcordutils, user, httpcore, asyncdispatch, strutils, uri
+import json, discordobject, nimcordutils, user, httpcore, strutils, uri
 
 type 
     Emoji* = ref object of DiscordObject
