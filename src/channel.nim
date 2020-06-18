@@ -2,7 +2,7 @@ import json, discordobject, user, options, nimcordutils, message, httpcore, asyn
 
 type 
     ChannelType* = enum
-        chanTypeNIL = -1,
+        ## This enum shows the type of the channel.
         chanTypeGuildText = 0,
         chanTypeDM = 1,
         chanTypeGuildVoice = 2,
@@ -12,6 +12,7 @@ type
         chanTypeGuildStore = 6
 
     Channel* = ref object of DiscordObject
+        ## Discord channel object.
         `type`*: ChannelType ## The type of channel.
         guildID*: snowflake ## The id of the guild.
         position*: int ## Sorting position of the channel.
@@ -43,14 +44,8 @@ type
         #permissionOverwrites*: seq[Permissions] ## Explicit permission overwrites for members and roles.
         parentID*: Option[snowflake]
 
-#[ proc newChannelModify*(name: Option[string], `type`: Option[ChannelType], position: Option[int], 
-    topic: Option[string], nsfw: Option[bool], rateLimitPerUser: Option[int], bitrate: Option[int], 
-    userLimit: Option[int], parentID: Option[snowflake]): ChannelModify =
-    
-    return ChannelModify(name: name.get, `type`:`type`, position: position, nsfw: nsfw, 
-        rateLimitPerUser: rateLimitPerUser, bitrate: bitrate, userLimit: userLimit, parentID: parentID) ]#
-
 proc newChannel*(channel: JsonNode): Channel {.inline.} =
+    ## Parses the channel from json.
     var chan = Channel(
         id: getIDFromJson(channel["id"].getStr()),
         `type`: ChannelType(channel["type"].getInt()),
@@ -93,6 +88,7 @@ proc newChannel*(channel: JsonNode): Channel {.inline.} =
     return chan
 
 proc sendMessage*(channel: Channel, content: string, tts: bool = false): Message =
+    ## Send a message through the channel. 
     let messagePayload = %*{"content": content, "tts": tts}
 
     return newMessage(sendRequest(endpoint("/channels/" & $channel.id & "/messages"), HttpPost, 
@@ -100,6 +96,14 @@ proc sendMessage*(channel: Channel, content: string, tts: bool = false): Message
         RateLimitBucketType.channel, messagePayload))
 
 proc modifyChannel*(channel: Channel, modify: ChannelModify): Future[Channel] {.async.} =
+    ## Modifies the channel.
+    ## 
+    ## Examples:
+    ## ```nim
+    ## var chan = getChannel(703084913510973472)
+    ## chan = chan.modifyChannel(ChannelModify(topic: some("This is the channel topic")))
+    ## ```
+
     var modifyPayload = %*{}
 
     if (modify.name.isSome):
@@ -137,5 +141,6 @@ proc modifyChannel*(channel: Channel, modify: ChannelModify): Future[Channel] {.
         channel.id, RateLimitBucketType.channel, modifyPayload))
 
 proc deleteChannel*(channel: Channel) {.async.} =
+    ## Delete the channel.
     discard sendRequest(endpoint("/channels/" & $channel.id), HttpDelete, 
         defaultHeaders(), channel.id, RateLimitBucketType.channel)
