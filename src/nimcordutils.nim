@@ -28,7 +28,7 @@ type
         guild,
         webhook,
         global
-    RateLimit = ref object {.requiresInit.}
+    RateLimit = ref object
         limit: int
         remainingLimit: int
         ratelimitReset: float
