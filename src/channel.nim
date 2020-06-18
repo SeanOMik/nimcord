@@ -31,7 +31,7 @@ type
         parentID: snowflake ## ID of the parent category for a channel
         lastPinTimestamp: string ## When the last pinned message was pinned
     
-    ChannelModify* {.requiresInit.} = ref object
+    ChannelModify* = ref object
         ## Use this type to modify a channel by setting each fields.
         name*: Option[string]
         `type`*: Option[ChannelType]
@@ -99,10 +99,9 @@ proc modifyChannel*(channel: Channel, modify: ChannelModify): Future[Channel] {.
     ## Modifies the channel.
     ## 
     ## Examples:
-    ## ```nim
-    ## var chan = getChannel(703084913510973472)
-    ## chan = chan.modifyChannel(ChannelModify(topic: some("This is the channel topic")))
-    ## ```
+    ## .. code-block:: nim
+    ##    var chan = getChannel(703084913510973472)
+    ##    chan = chan.modifyChannel(ChannelModify(topic: some("This is the channel topic")))
 
     var modifyPayload = %*{}
 
