@@ -90,10 +90,7 @@ proc startConnection*(client: DiscordClient) {.async.} =
         asyncCheck client.handleWebsocketPacket()
         runForever()
     else:
-        var e: ref IOError
-        new(e)
-        e.msg = "Failed to get gateway url, token may of been incorrect!"
-        raise e
+        raise newException(IOError, "Failed to get gateway url, token may of been incorrect!")
 
 proc newDiscordClient(tkn: string): DiscordClient =
     globalToken = tkn
