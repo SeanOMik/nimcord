@@ -201,6 +201,7 @@ proc removeAllReactions*(message: Message, emoji: Emoji) {.asnyc.} =
 
 #TODO: Embeds and maybe flags?
 proc editMessage*(message: Message, content: string): Future[Message] {.async.} =
+    ## Edit a previously sent message.
     let jsonBody = %*{"content": content}
     return newMessage(sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id),
         HttpPatch, defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), 
