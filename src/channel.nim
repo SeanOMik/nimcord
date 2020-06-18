@@ -1,4 +1,4 @@
-import json, discordobject, user, options, nimcordutils, message, httpcore, asyncdispatch, asyncfutures, strutils
+import json, discordobject, user, options, nimcordutils, message, httpcore, asyncdispatch, asyncfutures, permission
 
 type 
     ChannelType* = enum
@@ -16,7 +16,7 @@ type
         `type`*: ChannelType ## The type of channel.
         guildID*: snowflake ## The id of the guild.
         position*: int ## Sorting position of the channel.
-        #permissionOverwrites*: seq[Permissions] ## Explicit permission overwrites for members and roles.
+        permissionOverwrites*: seq[Permissions] ## Explicit permission overwrites for members and roles.
         name*: string ## The name of the channel (2-100 characters).
         topic*: string ## The channel topic (0-1024 characters).
         nsfw*: bool ## Whether the channel is nsfw.
@@ -41,7 +41,7 @@ type
         rateLimitPerUser*: Option[int]
         bitrate*: Option[int]
         userLimit*: Option[int]
-        #permissionOverwrites*: seq[Permissions] ## Explicit permission overwrites for members and roles.
+        permissionOverwrites*: Option[seq[Permissions]] ## Explicit permission overwrites for members and roles.
         parentID*: Option[snowflake]
 
     Invite* = object
@@ -72,7 +72,8 @@ proc newChannel*(channel: JsonNode): Channel {.inline.} =
     if (channel.contains("position")):
         chan.position = channel["position"].getInt()
     if (channel.contains("permission_overwrites")):
-        echo "permission_overwrites"
+        for perm in channel["permission_overwrites"]:
+            chan.permissionOverwrites.add(newPermissions(perm))
     if (channel.contains("name")):
         chan.name = channel["name"].getStr()
     if (channel.contains("topic")):
@@ -173,8 +174,11 @@ proc modifyChannel*(channel: Channel, modify: ChannelModify): Future[Channel] {.
     if (modify.userLimit.isSome):
         modifyPayload.add("user_limit", %modify.userLimit.get())
 
-    #[ if (modify.name.isSome):
-        modifyPayload.add("permission_overwrites", %modify.parentID.get()0 ]#
+    if (modify.permissionOverwrites.isSome):
+        var permOverwrites = parseJson("[]")
+        for perm in modify.permissionOverwrites.get():
+            permOverwrites.add(perm.permissionsToJson())
+        modifyPayload.add("permission_overwrites", permOverwrites)
 
     if (modify.parentID.isSome):
         modifyPayload.add("parent_id", %modify.parentID.get())
