@@ -1,4 +1,4 @@
-import json, discordobject, channel, member, options, nimcordutils
+import json, discordobject, channel, member, options, nimcordutils, emoji, role, permission
 
 type 
     ChannelType* = enum
@@ -43,16 +43,15 @@ type
         discoverySplash*: string
         owner*: bool
         ownerID: snowflake
-        #TODO: Convert this to a Permissions type
-        permissions*: int
+        permissions*: Permissions
         region*: string
         afkChannelID*: snowflake
         afkTimeout*: int
         verificationLevel*: VerificationLevel
         defaultMessageNotifications*: MessageNotificationsLevel
         explicitContentFilter*: ExplicitContentFilterLevel
-        #roles*: seq[Role]
-        #emojis*: seq[Emoji]
+        roles*: seq[Role]
+        emojis*: seq[Emoji]
         features*: seq[string]
         mfaLevel*: MFALevel
         applicationID*: snowflake
@@ -97,8 +96,6 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
         verificationLevel: VerificationLevel(json["verification_level"].getInt()),
         defaultMessageNotifications: MessageNotificationsLevel(json["default_message_notifications"].getInt()),
         explicitContentFilter: ExplicitContentFilterLevel(json["explicit_content_filter"].getInt()),
-        #roles
-        #emojis
         #features
         mfaLevel: MFALevel(json["mfa_level"].getInt()),
         applicationID: getIDFromJson(json["application_id"].getStr()),
@@ -116,9 +113,13 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
     # Parse all non guaranteed fields
     if (json.contains("owner")):
         g.owner = json["owner"].getBool()
-    if (json.contains("owner_id")):
-        g.ownerID = getIDFromJson(json["owner_id"].getStr())
-    #TODO: permissions
+    if (json.contains("permissions")):
+        g.permissions = newPermissions(json["permissions"])
+    for role in json["roles"]:
+        g.roles.add(newRole(role))
+    for emoji in json["emojis"]:
+        g.emojis.add(newEmoji(emoji))
+    #TODO features
     if (json.contains("widget_enabled")):
         g.widgetEnabled = json["widget_enabled"].getBool()
     if (json.contains("widget_channel_id")):
