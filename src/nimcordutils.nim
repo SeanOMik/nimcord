@@ -6,8 +6,21 @@ proc getIDFromJson*(str: string): uint64 =
     discard parseBiggestUInt(str, num)
     return num
 
+proc parseIntEasy*(str: string): int =
+    var num: int
+    discard parseInt(str, num)
+    return num
+
 proc endpoint*(url: string): string =
     return fmt("https://discord.com/api/v6{url}")
+
+var globalToken*: string
+
+proc defaultHeaders*(added: HttpHeaders = newHttpHeaders()): HttpHeaders = 
+    added.add("Authorization", fmt("Bot {globalToken}"))
+    added.add("User-Agent", "NimCord (https://github.com/SeanOMik/nimcord, v0.0.0)")
+    added.add("X-RateLimit-Precision", "millisecond")
+    return added;
 
 type 
     RateLimitBucketType* = enum
@@ -94,4 +107,21 @@ proc waitForRateLimits*(objectID: snowflake, bucketType: RateLimitBucketType) =
 
         if (millisecondTime > 0):
             echo fmt("Rate limit wait time: {millisecondTime} miliseconds")
-            discard sleepAsync(millisecondTime)
+            discard sleepAsync(millisecondTime)
+
+proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders, objectID: snowflake = 0, 
+    bucketType: RateLimitBucketType = global, jsonBody: JsonNode = %*{}): JsonNode =    
+    var client = newHttpClient()
+    # Add headers
+    client.headers = headers
+
+    var strPayload: string
+    if ($jsonBody == "{}"):
+        strPayload = ""
+    else:
+        strPayload = $jsonBody
+    echo "Sending ", httpMethod, " request, URL: ", endpoint, ", body: ", strPayload
+
+    waitForRateLimits(objectID, bucketType)
+    let response = client.request(endpoint, httpMethod, strPayload)
+    return handleResponse(response, objectId, bucketType)
