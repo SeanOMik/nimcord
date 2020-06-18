@@ -120,7 +120,7 @@ proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders
         strPayload = ""
     else:
         strPayload = $jsonBody
-    echo "Sending ", httpMethod, " request, URL: ", endpoint, ", body: ", strPayload
+    echo "Sending ", httpMethod, " request, URL: ", endpoint, ", headers: ", $headers, " body: ", strPayload
 
     waitForRateLimits(objectID, bucketType)
     let response = client.request(endpoint, httpMethod, strPayload)
