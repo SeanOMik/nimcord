@@ -1,16 +1,21 @@
-import tables, hashes, json, message
+import tables, hashes, json, message, user, guild, clientobjects
 
 type
     EventType* = enum
         evtReady = "READY"
         evtMessageCreate = "MESSAGE_CREATE"
+        evtGuildCreate = "GUILD_CREATE"
 
     BaseEvent* = object of RootObj
+        client*: DiscordClient
         name*: string
     ReadyEvent* = object of BaseEvent
         readyPayload*: JsonNode
+        clientUser*: User
     MessageCreateEvent* = object of BaseEvent
         message*: Message
+    GuildCreateEvent* = object of BaseEvent
+        guild*: Guild
 
 # Table storing all the event listeners
 let eventListeners = newTable[string, seq[proc(event: BaseEvent)]]()
