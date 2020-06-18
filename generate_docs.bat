@@ -1,0 +1,1 @@
+nim doc -o:docs/ --project src/message.nim
