@@ -1,4 +1,11 @@
-import websocket, asyncnet, asyncdispatch, json, httpClient, eventdispatcher, strformat, eventhandler, streams, nimcordutils, discordobject
+import websocket, asyncnet, asyncdispatch, json, httpClient, eventdispatcher, strformat
+import eventhandler, streams, nimcordutils, discordobject, user, cache, clientobjects
+import strutils, channel, options
+
+const 
+    nimcordMajor = 0
+    nimcordMinor = 0
+    nimcordMicro = 0
 
 type
     DiscordOpCode = enum
@@ -14,40 +21,11 @@ type
         opHello = 10,
         opHeartbeatAck = 11
 
-    DiscordClient* = ref object ## Discord Client
-        token*: string
-        #user*: User
-        #cache: Cache
-        ws: AsyncWebSocket
-        httpClient: AsyncHttpClient
-        heartbeatInterval: int
-        heartbeatAcked: bool
-        lastSequence: int
-
-var globalClient: DiscordClient
-
 proc defaultHeaders*(client: DiscordClient, added: HttpHeaders = newHttpHeaders()): HttpHeaders = 
     added.add("Authorization", fmt("Bot {client.token}"))
     added.add("User-Agent", "NimCord (https://github.com/SeanOMik/nimcord, v0.0.0)")
     added.add("X-RateLimit-Precision", "millisecond")
     return added;
-
-proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders, objectID: snowflake = 0, bucketType: RateLimitBucketType = global, jsonBody: JsonNode = %*{}): JsonNode =    
-    var client = newHttpClient()
-    # Add headers
-    client.headers = headers
-
-    var strPayload: string
-    if ($jsonBody == "{}"):
-        strPayload = ""
-    else:
-        strPayload = $jsonBody
-
-    echo "Sending GET request, URL: ", endpoint, ", body: ", strPayload
-
-    waitForRateLimits(objectID, bucketType)
-
-    return handleResponse(client.request(endpoint, httpMethod, strPayload), objectId, bucketType)
 
 proc sendGatewayRequest*(client: DiscordClient, request: JsonNode, msg: string = "") {.async.} =
     if (msg.len == 0):
@@ -96,16 +74,11 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
             of ord(DiscordOpCode.opHeartbeatAck):
                 client.heartbeatAcked = true
             of ord(DiscordOpCode.opDispatch):
-                handleDiscordEvent(json["d"], json["t"].getStr())
+                discard handleDiscordEvent(client, json["d"], json["t"].getStr())
             else:
                 discard
 
 proc startConnection*(client: DiscordClient) {.async.} =
-    globalClient = client
-
-    client.httpClient = newAsyncHttpClient()
-    client.httpClient.headers = newHttpHeaders({"Authorization": fmt("Bot {client.token}")})
-
     let urlResult = sendRequest(endpoint("/gateway/bot"), HttpMethod.HttpGet, client.defaultHeaders())
     if (urlResult.contains("url")):
         let url = urlResult["url"].getStr()
@@ -122,6 +95,14 @@ proc startConnection*(client: DiscordClient) {.async.} =
         e.msg = "Failed to get gateway url, token may of been incorrect!"
         raise e
 
+proc newDiscordClient(tkn: string): DiscordClient =
+    globalToken = tkn
+
+    var cac: Cache
+    new(cac)
+
+    result = DiscordClient(token: tkn, cache: cac)
+
 var tokenStream = newFileStream("token.txt", fmRead)
 var tkn: string
 if (not isNil(tokenStream)):
@@ -130,21 +111,45 @@ if (not isNil(tokenStream)):
 
     tokenStream.close()
 
-var bot = DiscordClient(token: tkn)
+var bot = newDiscordClient(tkn)
 
 registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
     let event = ReadyEvent(bEvt)
-    echo "Ready and connected 1!"
-)
+    bot.clientUser = event.clientUser
 
-registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
-    let event = ReadyEvent(bEvt)
-    echo "Ready and connected 2!"
+    echo "Ready! (v", nimcordMajor, ".", nimcordMinor, ".", nimcordMicro, ")"
+    echo "Logged in as: ", bot.clientUser.username, "#", bot.clientUser.discriminator
+    echo "ID: ", bot.clientUser.id
+    echo "--------------------"
 )
 
 registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
     let event = MessageCreateEvent(bEvt)
-    echo "Message was created!"
+
+    if (event.message.content == "?ping"):
+        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        if (channel != nil):
+            discard channel.sendMessage("PONG")
+    elif (event.message.content.startsWith("?modifyChannelTopic")):
+        let modifyTopic = event.message.content.substr(20)
+        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        if (channel != nil):
+            discard channel.sendMessage("Modifing Channel!")
+            discard channel.modifyChannel(ChannelModify(topic: some(modifyTopic)))
+    elif (event.message.content.startsWith("?deleteChannel")):
+        let channelID = getIDFromJson(event.message.content.substr(15))
+
+        var channel: Channel = event.client.cache.getChannel(channelID)
+        if (channel != nil):
+            discard channel.sendMessage("Deleting Channel!")
+            discard channel.deleteChannel()
+            discard channel.sendMessage("Deleted Channel!")
 )
+
+#[ registerEventListener(EventType.evtGuildCreate, proc(bEvt: BaseEvent) =
+    let event = GuildCreateEvent(bEvt)
+
+    echo "Guild has ", event.guild.members.len, " members and ", event.guild.channels.len, " channels..."
+) ]#
 
 waitFor bot.startConnection()
