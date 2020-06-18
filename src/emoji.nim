@@ -11,6 +11,8 @@ type
         available: bool
 
 proc newEmoji*(json: JsonNode): Emoji =
+    ## Construct an emoji with json.
+    ## This shouldn't really be used by the user, only internal use.
     result = Emoji(
         id: getIDFromJson(json["id"].getStr()),
         name: json["name"].getStr()
@@ -31,9 +33,11 @@ proc newEmoji*(json: JsonNode): Emoji =
         result.requireColons = json["available"].getBool()
 
 proc newEmoji*(name: string, id: snowflake): Emoji =
+    ## Construct an emoji using its name, and id.
     return Emoji(name: name, id: id)
 
 proc newEmoji*(unicode: string): Emoji =
+    ## Construct an emoji from its unicode reprsentation.
     return Emoji(name: unicode)
 
 proc `$`*(emoji: Emoji): string =
@@ -51,8 +55,21 @@ proc `$`*(emoji: Emoji): string =
         if emoji.requireColons:
             result = ":" & result & ":"
 
+proc `==`*(a: Emoji, b: Emoji): bool =
+    ## Check if two `Emoji`s are equal.
+    # Check if emojis have name but no id
+    if (a.id == 0 and b.id == 0 and a.name.isEmptyOrWhitespace() and b.name.isEmptyOrWhitespace()):
+        return a.name == b.name
+    # Check if emoji has IDs, but no name
+    elif (a.id != 0 and b.id != 0 and a.name.isEmptyOrWhitespace() and b.name.isEmptyOrWhitespace()):
+        return a.id == b.id
+    # Check if emoji has IDs, and a name
+    elif (a.id != 0 and b.id != 0 and not a.name.isEmptyOrWhitespace() and not b.name.isEmptyOrWhitespace()):
+        return $a == $b
+    return false
+
 proc toUrlEncoding*(emoji: Emoji): string =
-    ## Converts the emoji to be used in a url.
-    ## Not needed for users, only for internal 
+    ## Converts the `Emoji` to be used in a url.
+    ## Not needed for users, only for internal
     ## library use.
     return encodeUrl($emoji, true)
