@@ -1,4 +1,4 @@
-import json, discordobject, nimcordutils
+import json, discordobject, nimcordutils, asyncdispatch
 
 type 
     PermissionType* = enum
@@ -62,7 +62,7 @@ proc hasPermission*(perms: Permissions, perm: Permission): bool =
     ## This also checks if it is not a part of the denyPerms.
     return (perms.allowPerms and uint(perm)) == uint(perm) and (perms.denyPerms and uint(perm)) != uint(perm)
 
-proc addAllowPermission*(perms: Permissions, perm: Permission): Permissions =
+proc addAllowPermission*(perms: Permissions, perm: Permission): Future[Permissions] {.async.} =
     ## Add a `Permission` to the `Permissions` allow values.
     ## If it finds the permission in denyPerms, it will remove it from that also.
     
@@ -72,7 +72,7 @@ proc addAllowPermission*(perms: Permissions, perm: Permission): Permissions =
 
     perms.allowPerms = perms.allowPerms or uint(perm)
 
-proc addDenyPermission*(perms: Permissions, perm: Permission): Permissions =
+proc addDenyPermission*(perms: Permissions, perm: Permission): Future[Permissions] {.async.} =
     ## Add a `Permission` to the `Permissions` deny values.
     ## If it finds the permission in allowPerms, it will remove it from that also.
     
