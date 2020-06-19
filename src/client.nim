@@ -70,7 +70,7 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
             of ord(DiscordOpCode.opHeartbeatAck):
                 client.heartbeatAcked = true
             of ord(DiscordOpCode.opDispatch):
-                discard handleDiscordEvent(client, json["d"], json["t"].getStr())
+                asyncCheck(handleDiscordEvent(client, json["d"], json["t"].getStr()))
             else:
                 discard
 
