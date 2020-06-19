@@ -855,3 +855,9 @@ proc createEmoji*(guild: Guild, name: string, image: Image, roles: seq[snowflake
     return newEmoji(sendRequest(endpoint(fmt("/guilds/{guild.id}/emojis")), HttpPost,
         defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})),
         guild.id, RateLimitBucketType.guild, jsonBody), guild.id)
+
+proc getGuildMemberRoles*(guild: Guild, member: GuildMember): seq[Role] =
+    ## Get the role objects for a member's roles.
+    for role in guild.roles:
+        if (member.roles.contains(role.id)):
+            result.add(role)
