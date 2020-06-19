@@ -26,8 +26,16 @@ proc getGuild*(cache: Cache, id: snowflake): Guild =
         if (guild.id == id):
             return guild
     
-    return newGuild(sendRequest(endpoint("/guild/" & $id), HttpGet, defaultHeaders(), 
+    return newGuild(sendRequest(endpoint("/guilds/" & $id), HttpGet, defaultHeaders(), 
         id, RateLimitBucketType.guild))
 
 proc getChannelGuild*(channel: Channel, cache: Cache): Guild =
     return cache.getGuild(channel.guildID)
+
+#[ proc getGuildMember*(guild: Guild, memberID: snowflake, cache: Cache): GuildMember =
+    for index, members in cache.members:
+        if (members.id == id):
+            return guild
+    
+    return newGuildMember(sendRequest(endpoint("/guilds/" & $guild.id & "/members/" & $memberID), 
+        HttpGet, defaultHeaders(), id, RateLimitBucketType.guild)) ]#

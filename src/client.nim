@@ -1,6 +1,6 @@
 import websocket, asyncdispatch, json, httpClient, eventdispatcher, strformat
 import eventhandler, streams, nimcordutils, discordobject, user, cache, clientobjects
-import strutils, channel, options, message, emoji
+import strutils, channel, options, message, emoji, guild
 
 const 
     nimcordMajor = 0
@@ -104,12 +104,15 @@ proc startConnection*(client: DiscordClient) {.async.} =
 
 proc newDiscordClient(tkn: string): DiscordClient =
     ## Create a DiscordClient using a token.
+    ## 
+    ## Sets globalDiscordClient to the newly created client.
     globalToken = tkn
 
     var cac: Cache
     new(cac)
 
     result = DiscordClient(token: tkn, cache: cac)
+    globalDiscordClient = result
 
 var tokenStream = newFileStream("token.txt", fmRead)
 var tkn: string
@@ -144,7 +147,7 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
         var channel: Channel = event.message.getMessageChannel(event.client.cache)
         if (channel != nil):
             discard channel.sendMessage("Modifing Channel!")
-            discard channel.modifyChannel(ChannelModify(topic: some(modifyTopic)))
+            discard channel.modifyChannel(ChannelFields(topic: some(modifyTopic)))
     elif (event.message.content.startsWith("?deleteChannel")):
         let channelID = getIDFromJson(event.message.content.substr(15))
         var channel: Channel = event.client.cache.getChannel(channelID)
@@ -166,6 +169,9 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             let messages = channel.getMessages(MessagesGetRequest(limit: some(amount), before: some(event.message.id)))
             discard channel.bulkDeleteMessages(messages)
     elif (event.message.content.startsWith("?reactToMessage")):
+        var guild: Guild
+        discard guild.createGuildRole(name = some("Gamer Role"), color = some(0xff0000))
+
         var channel: Channel = event.message.getMessageChannel(event.client.cache)
         if (channel != nil):
             let emojis = @[newEmoji("⏮️"), newEmoji("⬅️"), newEmoji("⏹️"), newEmoji("➡️"), newEmoji("⏭️")]

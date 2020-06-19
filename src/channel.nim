@@ -31,18 +31,18 @@ type
         parentID*: snowflake ## ID of the parent category for a channel
         lastPinTimestamp*: string ## When the last pinned message was pinned
     
-    ChannelModify* = ref object
-        ## Use this type to modify a channel by setting each fields.
+    ChannelFields* = ref object
+        ## Use this type to modify or create a channel by setting each fields.
         name*: Option[string]
         `type`*: Option[ChannelType]
-        position*: Option[int]
         topic*: Option[string]
-        nsfw*: Option[bool]
-        rateLimitPerUser*: Option[int]
         bitrate*: Option[int]
         userLimit*: Option[int]
+        rateLimitPerUser*: Option[int]
+        position*: Option[int]
         permissionOverwrites*: Option[seq[Permissions]] ## Explicit permission overwrites for members and roles.
         parentID*: Option[snowflake]
+        nsfw*: Option[bool]
 
     Invite* = object
         ## Represents a code that when used, adds a user to a guild or group DM channel.
@@ -140,14 +140,14 @@ proc sendMessage*(channel: Channel, content: string, tts: bool = false): Message
         defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), channel.id, 
         RateLimitBucketType.channel, messagePayload))
 
-proc modifyChannel*(channel: Channel, modify: ChannelModify): Future[Channel] {.async.} =
+proc modifyChannel*(channel: Channel, modify: ChannelFields): Future[Channel] {.async.} =
     ## Modifies the channel.
     ## 
     ## Examples:
     ##
     ## .. code-block:: nim
     ##   var chan = getChannel(703084913510973472)
-    ##   chan = chan.modifyChannel(ChannelModify(topic: some("This is the channel topic")))
+    ##   chan = chan.modifyChannel(ChannelFields(topic: some("This is the channel topic")))
 
     var modifyPayload = %*{}
 
