@@ -1,16 +1,8 @@
-import json, discordobject, channel, member, options, nimcordutils, emoji, role, permission
+import json, discordobject, channel, member, options, nimcordutils, emoji, role, permission, httpcore
 
 type 
-    ChannelType* = enum
-        chanTypeGuildText = 0,
-        chanTypeDM = 1,
-        chanTypeGuildVoice = 2,
-        chanTypeGroupDM = 3,
-        chanTypeGuildCategory = 4,
-        chanTypeGuildNews = 5,
-        chanTypeGuildStore = 6
-
     VerificationLevel* = enum
+        ## Verification level required for the guild.
         verifLevelNone = 0,
         verifLevelLow = 1,
         verifLevelMedium = 2,
@@ -18,25 +10,30 @@ type
         verifLevelVeryHigh = 4
 
     MFALevel* = enum
+        ## The required MFA level for the guild.
         mfaLevelNone = 0,
         mfaLevelElevated = 1
 
     PremiumTier* = enum
+        ## Guild boost level
         premTierNone = 0,
         prermTierOne = 1,
         premTierTwo = 2,
         premTierThree = 3
 
     MessageNotificationsLevel* = enum
+        ## Default message notifications level
         msgNotifLevelAll = 0,
         msgNotifLevelMentions = 1
 
     ExplicitContentFilterLevel * = enum
+        ## Guild explicit content filter level
         expFilterLvlDisabled = 0,
         expFilterLvlMembersWithoutRoles = 1,
         expFilterLvlAllMembers = 2
 
     Guild* = ref object of DiscordObject
+        ## Discord Guild object
         name*: string
         icon*: string
         splash*: string
@@ -82,7 +79,7 @@ type
         approximatePresenceCount*: int
 
 proc newGuild*(json: JsonNode): Guild {.inline.} =
-    # Parsing all null or guaranteed fields
+    ## Parses a Guild type from json.
     var g = Guild(
         id: getIDFromJson(json["id"].getStr()),
         name: json["name"].getStr(),
