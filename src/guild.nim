@@ -152,3 +152,86 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
         g.approximatePresenceCount = json["approximate_presence_count"].getInt()
 
     return g
+
+proc createGuild*(name: string, region: Option[string], icon: Option[string], verificationLevel: Option[VerificationLevel],
+    defaultMessageNotifications: Option[MessageNotificationsLevel], explicitContentFilter: Option[ExplicitContentFilterLevel],
+    roles: Option[seq[Role]], channels: Option[seq[Channel]], afkChannelID: Option[snowflake], afkTimeout: Option[int],
+    systemChannelID: Option[snowflake]): Guild =
+    ## Create a new guild.
+    ## 
+    ## Some restraints/notes for this endpoint:
+    ## * When using the roles parameter, the first member of the array is used 
+    ##   to change properties of the guild's @everyone role. If you are trying to 
+    ##   bootstrap a guild with additional roles, keep this in mind.
+    ## * When using the roles parameter, the required id field within each role object
+    ##   is an integer placeholder, and will be replaced by the API upon consumption.
+    ##   Its purpose is to allow you to overwrite a role's permissions in a channel when 
+    ##   also passing in channels with the channels array.
+    ## * When using the channels parameter, the position field is ignored, and none of the 
+    ##   default channels are created.
+    ## * When using the channels parameter, the id field within each channel object may be 
+    ##   set to an integer placeholder, and will be replaced by the API upon consumption. 
+    ##   Its purpose is to allow you to create GUILD_CATEGORY channels by setting the parent_id 
+    ##   field on any children to the category's id field. Category channels must be listed 
+    ##   before any children.
+
+    var json = %* {"name": name}
+
+    if (region.isSome):
+        json.add("region", %region.get())
+    if (icon.isSome):
+        json.add("icon", %icon.get())
+    if (verificationLevel.isSome):
+        json.add("verification_level", %ord(verificationLevel.get()))
+    if (defaultMessageNotifications.isSome):
+        json.add("default_message_notifications", %ord(defaultMessageNotifications.get()))
+    if (explicitContentFilter.isSome):
+        json.add("explicit_content_filter", %ord(explicitContentFilter.get()))
+    if (roles.isSome):
+        #json.add("verification_level", %ord(verificationLevel.get()))
+        var rolesJson = parseJson("[]")
+        for role in roles.get():
+            let roleJson = %*{
+                "name": role.name,
+                "color": role.color,
+                "hoist": role.hoist,
+                "position": role.position,
+                "permissions": role.permissions.allowPerms,
+                "managed": role.managed,
+                "mentionable": role.mentionable
+            }
+            rolesJson.add(roleJson)
+
+        json.add("channels", rolesJson)
+    if (channels.isSome):
+        var channelsJson = parseJson("[]")
+        for channel in channels.get():
+            var channelJson = %*{
+                "type": channel.`type`,
+                "position": channel.position,
+                "name": channel.name,
+                "topic": channel.topic,
+                "nsfw": channel.nsfw,
+                "user_limit": channel.userLimit,
+                "rate_limit_per_user": channel.rateLimitPerUser,
+                "parent_id": channel.parentID
+            }
+
+            if (channel.permissionOverwrites.len != 0):
+                channelsJson.add("permission_overwrites", parseJson("[]"))
+                for permOverwrite in channel.permissionOverwrites:
+                    channelsJson["permission_overwrites"].add(permOverwrite.permissionsToJson())
+
+            channelsJson.add(channelJson)
+
+        json.add("channels", channelsJson)
+    if (afkChannelID.isSome):
+        json.add("afk_channel_id", %ord(afkChannelID.get()))
+    if (afkTimeout.isSome):
+        json.add("afk_timeout", %ord(afkTimeout.get()))
+    if (systemChannelID.isSome):
+        json.add("system_channel_id", %ord(systemChannelID.get()))
+
+    return newGuild(sendRequest(endpoint("/guilds"), HttpPost, 
+        defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), 
+        0, RateLimitBucketType.global, json))
