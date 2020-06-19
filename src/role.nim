@@ -8,8 +8,9 @@ type Role* = ref object of DiscordObject
     permissions*: Permissions
     managed*: bool
     mentionable*: bool
+    guildID*: snowflake
 
-proc newRole*(json: JsonNode): Role =
+proc newRole*(json: JsonNode, guild: snowflake): Role =
     result = Role(
         id: getIDFromJson(json["id"].getStr()),
         name: json["name"].getStr(),
@@ -17,7 +18,9 @@ proc newRole*(json: JsonNode): Role =
         hoist: json["hoist"].getBool(),
         position: uint(json["position"].getInt()),
         managed: json["managed"].getBool(),
-        mentionable: json["mentionable"].getBool()
+        mentionable: json["mentionable"].getBool(),
+        guildID: guild,
+        permissions: newPermissions(result.id, PermissionType.permTypeRole, 
+            uint(json["permissions"].getInt()))
     )
 
-    result.permissions = newPermissions(result.id, PermissionType.permTypeRole, uint(json["permissions"].getInt()))
