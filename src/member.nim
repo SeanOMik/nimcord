@@ -4,14 +4,14 @@ type GuildMember* = ref object of DiscordObject
     ## This type is a guild member.
     user*: User ## The user this guild member represents.
     nick*: string ## This users guild nickname.
-    roles*: seq[Role] ## Array of roles.
+    roles*: seq[snowflake] ## Array of roles.
     joinedAt*: string ## When the user joined the guild.
     premiumSince*: string ## When the user started boosting the guild.
     deaf*: bool ## Whether the user is deafened in voice channels.
     mute*: bool ## Whether the user is muted in voice channels.
     guildID*: snowflake ## The guild this member is in.
 
-proc newGuildMember*(json: JsonNode, guildRoles: seq[Role], guild: snowflake): GuildMember {.inline.} =
+proc newGuildMember*(json: JsonNode, guild: snowflake): GuildMember {.inline.} =
     ## Construct a GuildMember using json.
     result = GuildMember(
         nick: json{"nick"}.getStr(),
@@ -27,15 +27,9 @@ proc newGuildMember*(json: JsonNode, guildRoles: seq[Role], guild: snowflake): G
         result.user = newUser(json["user"])
 
     # Add roles
-    if (json.contains("roles") and guildRoles.len > 0):
-        var roleIDs: seq[snowflake]
-        for role in json["roles"]:
-            roleIDs.add(getIDFromJson(role.getStr()))
-
-        for role in guildRoles:
-            if (roleIDs.contains(role.id)):
-                result.roles.add(role)
-
+    for role in json["roles"]:
+        result.roles.add(getIDFromJson(role.getStr()))
+    
 type GuildMemberModify* = ref object
     nick: Option[string]
     roles: Option[seq[snowflake]]

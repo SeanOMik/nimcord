@@ -194,7 +194,7 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
     #TODO: voice_states
     if (json.contains("members")):
         for member in json["members"]:
-            g.members.insert(newGuildMember(member, g.roles, g.id))
+            g.members.insert(newGuildMember(member, g.id))
     if (json.contains("channels")):
         for channel in json["channels"]:
             g.channels.insert(newChannel(channel))
@@ -491,7 +491,7 @@ proc getGuildMember*(guild: var Guild, memberID: snowflake): GuildMember =
             return member
 
     result = newGuildMember(sendRequest(endpoint(fmt("/guilds/{guild.id}/members/{memberID}")), 
-        HttpPatch, defaultHeaders(), guild.id, RateLimitBucketType.guild), guild.roles, guild.id)
+        HttpPatch, defaultHeaders(), guild.id, RateLimitBucketType.guild), guild.id)
     guild.members.add(result)
 
 # Would this endpoint be worth adding? https://discord.com/developers/docs/resources/guild#list-guild-members

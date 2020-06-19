@@ -94,7 +94,7 @@ proc newMessage*(messageJson: JsonNode): Message =
     if (messageJson.contains("author")):
         msg.author = newUser(messageJson["author"])
     if (messageJson.contains("member")):
-        msg.member = newGuildMember(messageJson["member"], @[], msg.guildID)
+        msg.member = newGuildMember(messageJson["member"], msg.guildID)
 
     if (messageJson.contains("mentions")):
         let mentionsJson = messageJson["mentions"].getElems()
