@@ -179,7 +179,7 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
     for role in json["roles"]:
         g.roles.add(newRole(role, g.id))
     for emoji in json["emojis"]:
-        g.emojis.add(newEmoji(emoji))
+        g.emojis.add(newEmoji(emoji, g.id))
     #TODO features
     if (json.contains("widget_enabled")):
         g.widgetEnabled = json["widget_enabled"].getBool()
@@ -194,7 +194,7 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
     #TODO: voice_states
     if (json.contains("members")):
         for member in json["members"]:
-            g.members.insert(newGuildMember(member, g.id))
+            g.members.insert(newGuildMember(member, g.roles, g.id))
     if (json.contains("channels")):
         for channel in json["channels"]:
             g.channels.insert(newChannel(channel))
@@ -317,7 +317,7 @@ proc getGuildPreview*(guild: Guild): GuildPreview =
     )
 
     for emoji in json["emojis"]:
-        result.emojis.add(newEmoji(emoji))
+        result.emojis.add(newEmoji(emoji, guild.id))
 
     for feature in json["features"]:
         result.features.add(feature.getStr())
@@ -491,7 +491,7 @@ proc getGuildMember*(guild: var Guild, memberID: snowflake): GuildMember =
             return member
 
     result = newGuildMember(sendRequest(endpoint(fmt("/guilds/{guild.id}/members/{memberID}")), 
-        HttpPatch, defaultHeaders(), guild.id, RateLimitBucketType.guild), guild.id)
+        HttpPatch, defaultHeaders(), guild.id, RateLimitBucketType.guild), guild.roles, guild.id)
     guild.members.add(result)
 
 # Would this endpoint be worth adding? https://discord.com/developers/docs/resources/guild#list-guild-members
@@ -819,3 +819,39 @@ proc getGuildWidgetImage*(guild: Guild, style: GuildWidgetStyle): string =
             result &= "?style=banner3"
         of (GuildWidgetStyle.guildWidgetStyleBanner4):
             result &= "?style=banner4"
+
+proc requestEmojis*(guild: Guild): seq[Emoji] =
+    ## Request all guild emojis via Discord's REST API
+    ## Only use this if, for some reason, guild.emojis is inaccurate!
+    ## 
+    ## Also updates the guild's emojis when called.
+    let json = sendRequest(endpoint("/guilds/" & $guild.id & "/emojis"), HttpGet,
+        defaultHeaders(), guild.id, RateLimitBucketType.guild)
+
+    for emoji in json:
+        result.add(newEmoji(emoji, guild.id))
+    guild.emojis = result
+
+proc getEmoji*(guild: Guild, emojiID: snowflake): Emoji =
+    ## Returns a guild's emoji with `emojiID`.
+    ## If the emoji isn't found in `guild.emojis` then it will request on
+    ## from the Discord REST API.
+    for emoji in guild.emojis:
+        if emoji.id == emojiID:
+            return emoji
+    
+    return newEmoji(sendRequest(endpoint("/guilds/{guild.id}/emojis/{emojiID}"), HttpGet,
+        defaultHeaders(), guild.id, RateLimitBucketType.guild), guild.id)
+
+proc createEmoji*(guild: Guild, name: string, image: Image, roles: seq[snowflake] = @[]): Future[Emoji] {.async.} =
+    ## Create a new emoji for the guild. Requires the `MANAGE_EMOJIS` permission.
+    var jsonBody = %* {
+        "name": name,
+        "image": image.imageToDataURI()
+    }
+
+    jsonBody.add(parseJson(($roles).substr(1)))
+
+    return newEmoji(sendRequest(endpoint(fmt("/guilds/{guild.id}/emojis")), HttpPost,
+        defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})),
+        guild.id, RateLimitBucketType.guild, jsonBody), guild.id)

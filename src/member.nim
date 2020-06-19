@@ -11,9 +11,9 @@ type GuildMember* = ref object of DiscordObject
     mute*: bool ## Whether the user is muted in voice channels.
     guildID*: snowflake ## The guild this member is in.
 
-proc newGuildMember*(json: JsonNode, guild: snowflake): GuildMember {.inline.} =
+proc newGuildMember*(json: JsonNode, guildRoles: seq[Role], guild: snowflake): GuildMember {.inline.} =
     ## Construct a GuildMember using json.
-    var member = GuildMember(
+    result = GuildMember(
         nick: json{"nick"}.getStr(),
         #roles: seq[Role]
         joinedAt: json["joined_at"].getStr(),
@@ -24,12 +24,17 @@ proc newGuildMember*(json: JsonNode, guild: snowflake): GuildMember {.inline.} =
     )
 
     if (json.contains("user")):
-        member.user = newUser(json["user"])
+        result.user = newUser(json["user"])
 
-    for role in json:
-        member.roles.add(newRole(role, member.guildID))
+    # Add roles
+    if (json.contains("roles") and guildRoles.len > 0):
+        var roleIDs: seq[snowflake]
+        for role in json["roles"]:
+            roleIDs.add(getIDFromJson(role.getStr()))
 
-    return member
+        for role in guildRoles:
+            if (roleIDs.contains(role.id)):
+                result.roles.add(role)
 
 type GuildMemberModify* = ref object
     nick: Option[string]

@@ -1,21 +1,23 @@
-import json, discordobject, nimcordutils, user, httpcore, strutils, uri
+import json, discordobject, nimcordutils, user, httpcore, strutils, uri, strformat, asyncdispatch
 
 type 
     Emoji* = ref object of DiscordObject
         name*: string
         roles*: seq[snowflake]
         user*: User
-        requireColons: bool
-        managed: bool
-        animated: bool
-        available: bool
+        requireColons*: bool
+        managed*: bool
+        animated*: bool
+        available*: bool
+        guildID*: snowflake
 
-proc newEmoji*(json: JsonNode): Emoji =
+proc newEmoji*(json: JsonNode, guild: snowflake): Emoji =
     ## Construct an emoji with json.
     ## This shouldn't really be used by the user, only internal use.
     result = Emoji(
         id: getIDFromJson(json["id"].getStr()),
-        name: json["name"].getStr()
+        name: json["name"].getStr(),
+        guildID: guild
     )
 
     if (json.contains("roles")):
@@ -73,3 +75,23 @@ proc toUrlEncoding*(emoji: Emoji): string =
     ## Not needed for users, only for internal
     ## library use.
     return encodeUrl($emoji, true)
+
+proc modifyEmoji*(emoji: var Emoji, name: string, roles: seq[snowflake] = @[]): Future[Emoji] {.async.} =
+    ## Modify the given emoji. Requires the `MANAGE_EMOJIS` permission.
+    ## Changes will be reflected in given `emoji`.
+    var jsonBody = %* {
+        "name": name,
+        "roles": parseJson(($roles).substr(1))
+    }
+
+    emoji.name = name
+    emoji.roles = roles
+
+    return newEmoji(sendRequest(endpoint(fmt("/guilds/{emoji.guildID}/emojis/{emoji.id}")), HttpPatch,
+        defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})),
+        emoji.guildID, RateLimitBucketType.guild, jsonBody), emoji.guildID)
+
+proc deleteEmoji*(emoji: Emoji) {.async.} =
+    ## Delete the given emoji. Requires the `MANAGE_EMOJIS` permission.
+    discard sendRequest(endpoint(fmt("/guilds/{emoji.guildID}/emojis/{emoji.id}")), HttpDelete,
+        defaultHeaders(), emoji.guildID, RateLimitBucketType.guild)

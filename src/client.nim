@@ -169,9 +169,6 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             let messages = channel.getMessages(MessagesGetRequest(limit: some(amount), before: some(event.message.id)))
             discard channel.bulkDeleteMessages(messages)
     elif (event.message.content.startsWith("?reactToMessage")):
-        var guild: Guild
-        discard guild.createGuildRole(name = some("Gamer Role"), color = some(0xff0000))
-
         var channel: Channel = event.message.getMessageChannel(event.client.cache)
         if (channel != nil):
             let emojis = @[newEmoji("⏮️"), newEmoji("⬅️"), newEmoji("⏹️"), newEmoji("➡️"), newEmoji("⏭️")]
