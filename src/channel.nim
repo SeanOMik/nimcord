@@ -144,9 +144,10 @@ proc modifyChannel*(channel: Channel, modify: ChannelModify): Future[Channel] {.
     ## Modifies the channel.
     ## 
     ## Examples:
+    ##
     ## .. code-block:: nim
-    ##    var chan = getChannel(703084913510973472)
-    ##    chan = chan.modifyChannel(ChannelModify(topic: some("This is the channel topic")))
+    ##   var chan = getChannel(703084913510973472)
+    ##   chan = chan.modifyChannel(ChannelModify(topic: some("This is the channel topic")))
 
     var modifyPayload = %*{}
 
@@ -204,6 +205,7 @@ proc getMessages*(channel: Channel, request: MessagesGetRequest): seq[Message] =
     ## Gets messages from the channel.
     ## 
     ## Examples:
+    ##
     ## .. code-block:: nim
     ##   var chan = getChannel(703084913510973472)
     ##   channel.getMessages(MessagesGetRequest(limit: some(15), before: some(723030179760570428)))
@@ -302,6 +304,7 @@ proc createChannelInvite*(channel: Channel, fields: CreateInviteFields): Invite 
     ## Requires the CREATE_INSTANT_INVITE permission.
     ## 
     ## Examples:
+    ##
     ## .. code-block:: nim
     ##   var chan = getChannel(703084913510973472)
     ##   # Create an invite that lasts 1 day, and can only be used 10 times

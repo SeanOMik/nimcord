@@ -21,13 +21,9 @@ type
         opHello = 10,
         opHeartbeatAck = 11
 
-proc defaultHeaders*(client: DiscordClient, added: HttpHeaders = newHttpHeaders()): HttpHeaders = 
-    added.add("Authorization", fmt("Bot {client.token}"))
-    added.add("User-Agent", "NimCord (https://github.com/SeanOMik/nimcord, v0.0.0)")
-    added.add("X-RateLimit-Precision", "millisecond")
-    return added;
-
 proc sendGatewayRequest*(client: DiscordClient, request: JsonNode, msg: string = "") {.async.} =
+    ## Send a gateway request.
+    ## Don't use this unless you know what you're doing!
     if (msg.len == 0):
         echo "Sending gateway payload: ", request
     else:
@@ -79,7 +75,21 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
                 discard
 
 proc startConnection*(client: DiscordClient) {.async.} =
-    let urlResult = sendRequest(endpoint("/gateway/bot"), HttpMethod.HttpGet, client.defaultHeaders())
+    ## Start a bot connection.
+    ## 
+    ## Examples:
+    ## 
+    ## .. code-block:: nim 
+    ##   var tokenStream = newFileStream("token.txt", fmRead)
+    ##   var tkn: string
+    ##   if (not isNil(tokenStream)):
+    ##      discard tokenStream.readLine(tkn)
+    ##      echo "Read token from the file: ", tkn
+    ## 
+    ##   tokenStream.close()
+    ## 
+    ##   var bot = newDiscordClient(tkn)
+    let urlResult = sendRequest(endpoint("/gateway/bot"), HttpMethod.HttpGet, defaultHeaders())
     if (urlResult.contains("url")):
         let url = urlResult["url"].getStr()
 
@@ -93,6 +103,7 @@ proc startConnection*(client: DiscordClient) {.async.} =
         raise newException(IOError, "Failed to get gateway url, token may of been incorrect!")
 
 proc newDiscordClient(tkn: string): DiscordClient =
+    ## Create a DiscordClient using a token.
     globalToken = tkn
 
     var cac: Cache
