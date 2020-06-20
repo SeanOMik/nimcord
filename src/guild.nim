@@ -34,6 +34,37 @@ type
         expFilterLvlMembersWithoutRoles = 1,
         expFilterLvlAllMembers = 2
 
+    GuildFeature* = enum
+        ## Guild's features. This enum is used as constants for the user.
+        ## For guild feature explainations go [here](https://discord.com/developers/docs/resources/guild#guild-object-guild-features)
+        featureInviteSplash = "INVITE_SPLASH",
+        featureVipRegions = "VIP_REGIONS",
+        featureVanityUrl = "VANITY_URL",
+        featureVerifiedPartnered = "PARTNERED",
+        featurePublic = "PUBLIC",
+        featureCommerce = "COMMERCE",
+        featureNews = "NEWS",
+        featureDiscoverable = "DISCOVERABLE",
+        featureFeaturable = "FEATURABLE",
+        featureAnimatedIcon = "ANIMATED_ICON",
+        featureBanner = "BANNER",
+        featurePublicDisabled = "PUBLIC_DISABLED",
+        featureWelcomeScreenEnabled = "WELCOME_SCREEN_ENABLED"
+
+    VoiceState* = ref object
+        ## Used to represent a user's voice connection status
+        guildID*: snowflake
+        channelID*: snowflake
+        userID*: snowflake
+        member*: GuildMember
+        sessionID*: string
+        deaf*: bool
+        mute*: bool
+        selfDeaf*: bool
+        selfMute*: bool
+        selfStream*: bool
+        suppress*: bool
+
     Guild* = ref object of DiscordObject
         ## Discord Guild object
         name*: string
@@ -63,7 +94,7 @@ type
         large*: bool
         unavailable*: bool
         memberCount*: int
-        #voiceStates*: seq[VoiceState]
+        voiceStates*: seq[VoiceState]
         members*: seq[GuildMember]
         channels*: seq[Channel]
         #presences*: seq[Presence]
@@ -132,14 +163,11 @@ type
         channelID*: snowflake
 
     GuildWidgetStyle* = enum
-        guildWidgetStyleShield = "shield", ## Shield style widget with Discord icon and guild members online count.
-        guildWidgetStyleBanner1 = "banner1", ## Large image with guild icon, name and online count. 
-                                             ## "POWERED BY DISCORD" as the footer of the widget.
-        guildWidgetStyleBanner2 = "banner2", ## Smaller widget style with guild icon, name and online count. 
-                                             ## Split on the right with Discord logo.
-        guildWidgetStyleBanner3 = "banner3", ## Large image with guild icon, name and online count. 
-                                             ## In the footer, Discord logo on the left and "Chat Now" on the right.
-        guildWidgetStyleBanner4 = "banner4" 
+        guildWidgetStyleShield = "shield",
+        guildWidgetStyleBanner1 = "banner1",
+        guildWidgetStyleBanner2 = "banner2",
+        guildWidgetStyleBanner3 = "banner3",
+        guildWidgetStyleBanner4 = "banner4"
 
 
 proc newGuild*(json: JsonNode): Guild {.inline.} =
@@ -157,7 +185,6 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
         verificationLevel: VerificationLevel(json["verification_level"].getInt()),
         defaultMessageNotifications: MessageNotificationsLevel(json["default_message_notifications"].getInt()),
         explicitContentFilter: ExplicitContentFilterLevel(json["explicit_content_filter"].getInt()),
-        #features
         mfaLevel: MFALevel(json["mfa_level"].getInt()),
         applicationID: getIDFromJson(json["application_id"].getStr()),
         systemChannelID: getIDFromJson(json["system_channel_id"].getStr()),
@@ -180,7 +207,8 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
         g.roles.add(newRole(role, g.id))
     for emoji in json["emojis"]:
         g.emojis.add(newEmoji(emoji, g.id))
-    #TODO features
+    for feature in json["features"]:
+        g.features.add(feature.getStr())
     if (json.contains("widget_enabled")):
         g.widgetEnabled = json["widget_enabled"].getBool()
     if (json.contains("widget_channel_id")):
@@ -191,7 +219,25 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
         g.unavailable = json["unavailable"].getBool()
     if (json.contains("member_count")):
         g.memberCount = json["member_count"].getInt()
-    #TODO: voice_states
+    if (json.contains("voice_states")):
+        for voicestate in json["voice_states"]:
+            var state = VoiceState(
+                guildID: g.id,
+                channelID: getIDFromJson(voicestate["channel_id"].getStr()),
+                userID: getIDFromJson(voicestate["user_id"].getStr()),
+                sessionID: voicestate["session_id"].getStr(),
+                deaf: voicestate["deaf"].getBool(),
+                mute: voicestate["mute"].getBool(),
+                selfDeaf: voicestate["self_deaf"].getBool(),
+                selfMute: voicestate["self_mute"].getBool(),
+                selfStream: voicestate{"self_stream"}.getBool(),
+                suppress: voicestate["suppress"].getBool()
+            )
+
+            if (voicestate.contains("member")):
+                state.member = newGuildMember(voicestate["member"], g.id)
+
+            g.voiceStates.add(state)
     if (json.contains("members")):
         for member in json["members"]:
             g.members.insert(newGuildMember(member, g.id))
