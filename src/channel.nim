@@ -1,4 +1,4 @@
-import json, discordobject, user, options, nimcordutils, message, httpcore, asyncdispatch, asyncfutures, permission
+import json, discordobject, user, options, nimcordutils, message, httpcore, asyncdispatch, asyncfutures, permission, embed
 
 type 
     ChannelType* = enum
@@ -131,10 +131,13 @@ proc newInvite*(json: JsonNode): Invite {.inline.} =
 
     return invite
 
-#TODO: Embeds, and files
-proc sendMessage*(channel: Channel, content: string, tts: bool = false): Message =
+#TODO: Files
+proc sendMessage*(channel: Channel, content: string, tts: bool = false, embed: Embed = nil): Message =
     ## Send a message through the channel. 
-    let messagePayload = %*{"content": content, "tts": tts}
+    var messagePayload = %*{"content": content, "tts": tts}
+
+    if (not embed.isNil()):
+        messagePayload.add("embed", embed.embedJson)
 
     return newMessage(sendRequest(endpoint("/channels/" & $channel.id & "/messages"), HttpPost, 
         defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), channel.id, 

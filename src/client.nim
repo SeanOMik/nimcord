@@ -1,6 +1,6 @@
 import websocket, asyncdispatch, json, httpClient, eventdispatcher, strformat
 import eventhandler, streams, nimcordutils, discordobject, user, cache, clientobjects
-import strutils, channel, options, message, emoji, guild
+import strutils, channel, options, message, emoji, guild, embed
 
 const 
     nimcordMajor = 0
@@ -174,6 +174,13 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             let emojis = @[newEmoji("⏮️"), newEmoji("⬅️"), newEmoji("⏹️"), newEmoji("➡️"), newEmoji("⏭️")]
             for emoji in emojis:
                 discard event.message.addReaction(emoji)
+    elif (event.message.content.startsWith("?testEmbed")):
+        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        if (channel != nil):
+            var embed = Embed()
+            embed.setTitle("This embed is being sent from Nimcord!")
+            embed.setDescription("Nimcord was developed in about a week of actual work so there will likely be issues.")
+            discard channel.sendMessage("", false, embed)
 )
 
 waitFor bot.startConnection()
