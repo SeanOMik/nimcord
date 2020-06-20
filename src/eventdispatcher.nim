@@ -40,6 +40,7 @@ let internalEventTable: Table[string, proc(discordClient: DiscordClient, json: J
     }.toTable
 
 proc handleDiscordEvent*(discordClient: DiscordClient, json: JsonNode, eventName: string) {.async.} =
+    ## Handles, and dispatches, a gateway event. Only used internally.
     if (internalEventTable.hasKey(eventName)):
         let eventProc: proc(discordClient: DiscordClient, json: JsonNode) = internalEventTable[eventName]
         eventProc(discordClient, json)
