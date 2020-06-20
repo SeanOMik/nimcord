@@ -1,12 +1,13 @@
 import json
 
 type 
-    Embed* = ref object
-        embedJson: JsonNode
+    Embed* {.requiresInit.} = ref object
+        ## A message embed type
+        embedJson*: JsonNode
 
     EmbedFieldException* = object of CatchableError
 
-proc setTitle*(embed: var Embed, title: string): Embed =
+proc setTitle*(embed: var Embed, title: string) =
     ## Set the title of the embed.
     ## 
     ## Contstraints:
@@ -14,10 +15,12 @@ proc setTitle*(embed: var Embed, title: string): Embed =
     if (title.len < 0 or title.len > 256):
         raise newException(EmbedFieldException, "Embed title can only be 0-256 characters")
 
-    embed.embedJson.add("title", %title)
-    return embed
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
 
-proc setDescription*(embed: var Embed, description: string): Embed =
+    embed.embedJson.add("title", %title)
+
+proc setDescription*(embed: var Embed, description: string) =
     ## Set the description of the embed.
     ## 
     ## Contstraints:
@@ -25,26 +28,34 @@ proc setDescription*(embed: var Embed, description: string): Embed =
     if (description.len < 0 or description.len > 2048):
         raise newException(EmbedFieldException, "Embed description can only be 0-2048 characters")
 
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
+
     embed.embedJson.add("description", %description)
-    return embed
 
-proc setURL*(embed: var Embed, url: string): Embed =
+proc setURL*(embed: var Embed, url: string) =
     ## Set the url of the embed.
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
+
     embed.embedJson.add("url", %url)
-    return embed
 
-proc setTimestamp*(embed: var Embed, timestamp: string): Embed =
+proc setTimestamp*(embed: var Embed, timestamp: string) =
     ## Set the timestamp of the embed.
-    ## The timestamp is in `ISO8601` format.
+    ## The timestamp is in `ISO8601` format.    
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
+
     embed.embedJson.add("timestamp", %timestamp)
-    return embed
 
-proc setColor*(embed: var Embed, color: uint): Embed =
-    ## Set the color of the embed.
+proc setColor*(embed: var Embed, color: uint) =
+    ## Set the color of the embed.    
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
+
     embed.embedJson.add("color", %color)
-    return embed
 
-proc setFooter*(embed: var Embed, text: string, iconURL: string = "", proxyIconURL: string = ""): Embed =
+proc setFooter*(embed: var Embed, text: string, iconURL: string = "", proxyIconURL: string = "") =
     ## Set the footer of the embed.
     ## The `text` field cannot be longer than 2048 characters.
     ## The `proxyIconURL` field is the proxied url for the footer icon.
@@ -60,10 +71,12 @@ proc setFooter*(embed: var Embed, text: string, iconURL: string = "", proxyIconU
         "proxy_icon_url": proxyIconURL
     }
 
-    embed.embedJson.add("footer", footer)
-    return embed
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
 
-proc setImage*(embed: var Embed, url: string, proxyIconURL: string = "", height: int = -1, width: int = -1): Embed =
+    embed.embedJson.add("footer", footer)
+
+proc setImage*(embed: var Embed, url: string, proxyIconURL: string = "", height: int = -1, width: int = -1) =
     ## Set the image of the embed.
     ## The `proxyIconURL` field is the proxied url for the image.
     var image = %* {
@@ -76,10 +89,12 @@ proc setImage*(embed: var Embed, url: string, proxyIconURL: string = "", height:
     if (width != -1):
         image.add("width", %width)
     
-    embed.embedJson.add("image", image)
-    return embed
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
 
-proc setThumbnail*(embed: var Embed, url: string, proxyIconURL: string = "", height: int = -1, width: int = -1): Embed =
+    embed.embedJson.add("image", image)
+
+proc setThumbnail*(embed: var Embed, url: string, proxyIconURL: string = "", height: int = -1, width: int = -1) =
     ## Set the thumbnail of the embed.
     ## The `proxyIconURL` field is the proxied url for the thumbnail.
     var thumbnail = %* {
@@ -92,10 +107,12 @@ proc setThumbnail*(embed: var Embed, url: string, proxyIconURL: string = "", hei
     if (width != -1):
         thumbnail.add("width", %width)
     
-    embed.embedJson.add("thumbnail", thumbnail)
-    return embed
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
 
-proc setVideo*(embed: var Embed, url: string, height: int = -1, width: int = -1): Embed =
+    embed.embedJson.add("thumbnail", thumbnail)
+
+proc setVideo*(embed: var Embed, url: string, height: int = -1, width: int = -1) =
     ## Set the video of the embed.
     var video = %* {
         "url": url
@@ -106,20 +123,24 @@ proc setVideo*(embed: var Embed, url: string, height: int = -1, width: int = -1)
     if (width != -1):
         video.add("width", %width)
     
-    embed.embedJson.add("video", video)
-    return embed
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
 
-proc setProvider*(embed: var Embed, name: string, url: string = ""): Embed =
+    embed.embedJson.add("video", video)
+
+proc setProvider*(embed: var Embed, name: string, url: string = "") =
     ## Set the embed's provider.
     let provider = %* {
         "name": name,
         "url": url
     }
     
-    embed.embedJson.add("provider", provider)
-    return embed
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
 
-proc setAuthor*(embed: var Embed, name: string, url: string = "", iconURL: string = "", proxyIconURL: string = ""): Embed =
+    embed.embedJson.add("provider", provider)
+
+proc setAuthor*(embed: var Embed, name: string, url: string = "", iconURL: string = "", proxyIconURL: string = "") =
     ## Set the embed's author.
     ## The `url` field referes to the url of the author.
     ## 
@@ -135,10 +156,12 @@ proc setAuthor*(embed: var Embed, name: string, url: string = "", iconURL: strin
         "proxy_icon_url": proxyIconURL
     }
 
-    embed.embedJson.add("author", author)
-    return embed
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
 
-proc addField*(embed: var Embed, name: string, value: string, inline: bool = false): Embed =
+    embed.embedJson.add("author", author)
+
+proc addField*(embed: var Embed, name: string, value: string, inline: bool = false) =
     ## Add an embed field.
     ## 
     ## Contstraints:
@@ -156,6 +179,9 @@ proc addField*(embed: var Embed, name: string, value: string, inline: bool = fal
         "value": value,
         "inline": inline
     }
+
+    if (embed.embedJson.isNil()):
+        embed.embedJson = %*{}
 
     if embed.embedJson.contains("fields"):
         if (embed.embedJson["fields"].len > 25):
