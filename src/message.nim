@@ -1,4 +1,4 @@
-import json, discordobject, nimcordutils, user, member, httpcore, asyncdispatch, emoji, options
+import json, discordobject, nimcordutils, user, member, httpcore, asyncdispatch, emoji, options, embed, role, emoji
 
 type 
     MessageType* = enum
@@ -46,6 +46,27 @@ type
         msgFlagSourceMsgDeleted = 3,
         msgFlagUrgent = 4
 
+    Reaction* = ref object
+        count*: uint
+        me*: bool ## Whether the current user has reacted using this emoji.
+        emoji*: Emoji
+
+    ChannelMention* = ref object
+        ## Represents a channel mention inside of a message.
+        channelID*: snowflake
+        guildID*: snowflake
+        channelType*: int
+        name*: string
+
+    MessageAttachment* = ref object of DiscordObject
+        ## Represents a message attachment
+        filename*: string
+        size*: uint
+        url*: string
+        proxyURL*: string
+        height*: int
+        width*: int
+
     Message* = ref object of DiscordObject
         channelID*: snowflake
         guildID*: snowflake
@@ -57,11 +78,11 @@ type
         tts*: bool
         mentionEveryone*: bool
         mentions*: seq[User]
-        #mentionRoles*: seq[Role]
-        #mentionChannels*: seq[ChannelMention]
-        #attachments*: seq[Attachment]
-        #embeds*: seq[Embed]
-        #reactions*: seq[Reaction]
+        mentionRoles*: seq[snowflake]
+        mentionChannels*: seq[ChannelMention]
+        attachments*: seq[MessageAttachment]
+        embeds*: seq[Embed]
+        reactions*: seq[Reaction]
         pinned*: bool
         webhookID*: snowflake
         `type`*: MessageType
@@ -80,11 +101,6 @@ proc newMessage*(messageJson: JsonNode): Message =
         editedTimestamp: messageJson{"edited_timestamp"}.getStr(),
         tts: messageJson["tts"].getBool(),
         mentionEveryone: messageJson["mention_everyone"].getBool(),
-        #mentionRoles
-        #mentionChannels?
-        #attachments
-        #embeds
-        #reactions?
         pinned: messageJson["pinned"].getBool(),
         webhookID: getIDFromJson(messageJson{"webhook_id"}.getStr()),
         `type`: MessageType(messageJson["type"].getInt()),
@@ -97,10 +113,42 @@ proc newMessage*(messageJson: JsonNode): Message =
         msg.member = newGuildMember(messageJson["member"], msg.guildID)
 
     if (messageJson.contains("mentions")):
-        let mentionsJson = messageJson["mentions"].getElems()
-
-        for userJson in mentionsJson.items:
+        for userJson in messageJson["mentions"]:
             msg.mentions.add(newUser(userJson))
+        
+    for role in messageJson["mention_roles"]:
+        msg.mentionRoles.add(getIDFromJson(role.getStr()))
+
+    if (messageJson.contains("mention_channels")):
+        for channel in messageJson["mention_channels"]:
+            msg.mentionChannels.add(ChannelMention(
+                channelID: getIDFromJson(channel["id"].getStr()),
+                guildID: getIDFromJson(channel["guild_id"].getStr()),
+                channelType: channel["type"].getInt(),
+                name: channel["tyoe"].getStr()
+            ))
+
+    for attachment in messageJson["attachments"]:
+        msg.attachments.add(MessageAttachment(
+            id: getIDFromJson(attachment["id"].getStr()),
+            filename: attachment["filename"].getStr(),
+            size: uint(attachment["size"].getInt()),
+            url: attachment["url"].getStr(),
+            proxyURL: attachment["proxy_url"].getStr(),
+            height: attachment["height"].getInt(),
+            width: attachment["width"].getInt()
+        ))
+
+    for embed in messageJson["embeds"]:
+        msg.embeds.add(Embed(embedJson: embed))
+
+    if (messageJson.contains("reactions")):
+        for reaction in messageJson["reactions"]:
+            msg.reactions.add(Reaction(
+                count: uint(reaction["count"].getInt()),
+                me: reaction["me"].getBool(),
+                emoji: newEmoji(reaction["emoji"], msg.guildID)
+            ))
 
     if (messageJson.contains("activity")):
         msg.activity = MessageActivity(`type`: MessageActivityType(messageJson["activity"]["type"].getInt()), 
