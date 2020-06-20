@@ -1,4 +1,4 @@
-import json, discordobject, user, options, nimcordutils, message, httpcore, asyncdispatch, asyncfutures, permission, embed
+import json, discordobject, user, options, nimcordutils, message, httpcore, asyncdispatch, asyncfutures, permission, embed, httpclient, streams
 
 type 
     ChannelType* = enum
@@ -59,6 +59,13 @@ type
         maxAge*: int ## Duration (in seconds) after which the invite expires
         temporary*: bool ## Whether this invite only grants temporary membership
         createdAt: string ## When this invite was created
+
+    DiscordFile* = ref object
+        ## This type is used for sending files. 
+        ## It stores the file name, and the file path.
+        ## Nimcord will read the file contents itself.
+        fileName*: string
+        filePath*: string
 
 proc newChannel*(channel: JsonNode): Channel {.inline.} =
     ## Parses the channel from json.
@@ -132,12 +139,36 @@ proc newInvite*(json: JsonNode): Invite {.inline.} =
     return invite
 
 #TODO: Files
-proc sendMessage*(channel: Channel, content: string, tts: bool = false, embed: Embed = nil): Message =
+proc sendMessage*(channel: Channel, content: string, tts: bool = false, embed: Embed = nil, files: seq[DiscordFile] = @[]): Message =
     ## Send a message through the channel. 
     var messagePayload = %*{"content": content, "tts": tts}
 
     if (not embed.isNil()):
         messagePayload.add("embed", embed.embedJson)
+
+    if (files.len != 0):
+        var client = newHttpClient()
+        let endpoint = endpoint("/channels/" & $channel.id & "/messages")
+        var multipart = newMultipartData()
+        # Add headers
+        client.headers = defaultHeaders(newHttpHeaders({"Content-Type": "multipart/form-data"}))
+
+        for index, file in files:
+            var imageStream = newFileStream(file.filePath, fmRead)
+            if (not isNil(imageStream)):
+                let data = imageStream.readALL()
+                multipart.add("file" & $index, data, file.fileName, "application/octet-stream", false)
+                
+                imageStream.close()
+            else:
+                raise newException(IOError, "Failed to open file for sending: " & file.filePath)
+        multipart.add("payload_json", $messagePayload, "", "application/json", false)
+
+        echo "Sending POST request, URL: ", endpoint, ", headers: ", client.headers, " payload_json: ", messagePayload
+
+        waitForRateLimits(channel.id, RateLimitBucketType.channel)
+        let response: Response = client.post(endpoint, "", multipart)
+        return newMessage(handleResponse(response, channel.id, RateLimitBucketType.channel))
 
     return newMessage(sendRequest(endpoint("/channels/" & $channel.id & "/messages"), HttpPost, 
         defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), channel.id, 

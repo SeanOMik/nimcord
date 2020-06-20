@@ -1,6 +1,6 @@
 import websocket, asyncdispatch, json, httpClient, eventdispatcher, strformat
 import eventhandler, streams, nimcordutils, discordobject, user, cache, clientobjects
-import strutils, channel, options, message, emoji, guild, embed
+import strutils, channel, options, message, emoji, guild, embed, os
 
 const 
     nimcordMajor = 0
@@ -185,6 +185,30 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             embed.addField("Inline-1", "This is an inline field 1", true)
             embed.setColor(0xffb900)
             discard channel.sendMessage("", false, embed)
+    elif (event.message.content.startsWith("?sendFile")):
+        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        if (channel != nil):
+            let filePath = event.message.content.substr(10)
+
+            let splitFile = splitFile(filePath)
+            let fileName = splitFile.name & splitFile.ext
+
+            let file = DiscordFile(filePath: filePath, fileName: fileName)
+            discard channel.sendMessage("", false, nil, @[file])
+    elif (event.message.content.startsWith("?sendImage")):
+        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        if (channel != nil):
+            let filePath = event.message.content.substr(11)
+
+            let splitFile = splitFile(filePath)
+            let fileName = splitFile.name & splitFile.ext
+
+            let file = DiscordFile(filePath: filePath, fileName: fileName)
+
+            var embed = Embed()
+            embed.setTitle("Image attachment test.")
+            embed.setImage("attachment://" & fileName)
+            discard channel.sendMessage("", false, embed, @[file])
 )
 
 waitFor bot.startConnection()

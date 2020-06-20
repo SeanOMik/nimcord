@@ -135,8 +135,8 @@ proc newMessage*(messageJson: JsonNode): Message =
             size: uint(attachment["size"].getInt()),
             url: attachment["url"].getStr(),
             proxyURL: attachment["proxy_url"].getStr(),
-            height: attachment["height"].getInt(),
-            width: attachment["width"].getInt()
+            height: attachment{"height"}.getInt(),
+            width: attachment{"width"}.getInt()
         ))
 
     for embed in messageJson["embeds"]:
