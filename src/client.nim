@@ -48,6 +48,7 @@ proc handleHeartbeat(client: DiscordClient) {.async.} =
 proc getIdentifyPacket(client: DiscordClient): JsonNode =
     return %* { "op": ord(DiscordOpCode.opIdentify), "d": { "token": client.token, "properties": { "$os": system.hostOS, "$browser": "NimCord", "$device": "NimCord" } } }
 
+#TODO: Reconnecting. It should be pretty easy tbh.
 proc handleWebsocketPacket(client: DiscordClient) {.async.} = 
     while true:
         var packet: tuple[opcode: Opcode, data: string]
