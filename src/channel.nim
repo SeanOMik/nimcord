@@ -138,7 +138,6 @@ proc newInvite*(json: JsonNode): Invite {.inline.} =
 
     return invite
 
-#TODO: Files
 proc sendMessage*(channel: Channel, content: string, tts: bool = false, embed: Embed = nil, files: seq[DiscordFile] = @[]): Message =
     ## Send a message through the channel. 
     var messagePayload = %*{"content": content, "tts": tts}

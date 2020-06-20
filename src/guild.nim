@@ -663,8 +663,6 @@ proc beginGuildPrune*(guild: Guild, days: int = 7, computePruneCount: bool = fal
     if computePruneCount:
         return some(jsonBody["pruned"].getInt())
 
-#TODO: https://discord.com/developers/docs/resources/guild#get-guild-voice-regions
-
 proc getGuildVoiceRegions*(guild: Guild): seq[VoiceRegion] =
     ## Returns a list of voice region objects for the guild.
     let jsonBody = sendRequest(endpoint(fmt("/guilds/{guild.id}/regions")), HttpGet,
