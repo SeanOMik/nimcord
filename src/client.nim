@@ -180,6 +180,10 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             var embed = Embed()
             embed.setTitle("This embed is being sent from Nimcord!")
             embed.setDescription("Nimcord was developed in about a week of actual work so there will likely be issues.")
+            embed.addField("Title", "value")
+            embed.addField("Inline-0", "This is an inline field 0", true)
+            embed.addField("Inline-1", "This is an inline field 1", true)
+            embed.setColor(0xffb900)
             discard channel.sendMessage("", false, embed)
 )
 
