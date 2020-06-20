@@ -1,4 +1,4 @@
-import eventhandler, json, tables, message, user, nimcordutils, httpClient, strformat, cache, guild, sequtils, asyncdispatch, clientobjects
+import eventhandler, json, tables, message, emoji, user, member, role, guild, channel, nimcordutils, httpClient, strformat, cache, sequtils, asyncdispatch, clientobjects
 
 proc readyEvent(discordClient: DiscordClient, json: JsonNode) =
     var readyEvent = ReadyEvent(client: discordClient, readyPayload: json, name: $EventType.evtReady)
@@ -18,6 +18,14 @@ proc readyEvent(discordClient: DiscordClient, json: JsonNode) =
     readyEvent.clientUser = clientUser
     
     dispatchEvent(readyEvent)
+
+proc channelCreateEvent(discordClient: DiscordClient, json: JsonNode) = 
+    let chnl = newChannel(json)
+    let channelCreateEvnt = ChannelCreateEvent(client: discordClient, channel: chnl, name: $EventType.evtChannelCreate)
+    dispatchEvent(channelCreateEvent)
+
+proc channelUpdateEvent(discordClient: DiscordClient, json: JsonNode) = 
+proc channelDeleteEvent(discordClient: DiscordClient, json: JsonNode) = 
 
 proc messageCreateEvent(discordClient: DiscordClient, json: JsonNode) =
     let msg = newMessage(json)
