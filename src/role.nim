@@ -11,17 +11,8 @@ type Role* = ref object of DiscordObject
     guildID*: snowflake
 
 proc newRole*(json: JsonNode, guild: snowflake): Role =
-    echo "ROLE JSON: ", json
-    result = Role()
-    result.id = getIDFromJson(json["id"].getStr())
-    result.name = json["name"].getStr()
-    result.color = uint(json["color"].getInt())
-    result.hoist = json["hoist"].getBool()
-    result.position = uint(json["position"].getInt())
-    result.managed = json["managed"].getBool()
-    result.mentionable = json["mentionable"].getBool()
-    result.guildID = guild
-        #[ id: getIDFromJson(json["id"].getStr()),
+    result = Role(
+        id: getIDFromJson(json["id"].getStr()),
         name: json["name"].getStr(),
         color: uint(json["color"].getInt()),
         hoist: json["hoist"].getBool(),
@@ -29,7 +20,7 @@ proc newRole*(json: JsonNode, guild: snowflake): Role =
         managed: json["managed"].getBool(),
         mentionable: json["mentionable"].getBool(),
         guildID: guild
-    ) ]#
+    )
 
     result.permissions = newPermissions(result.id, PermissionType.permTypeRole, 
             uint(json["permissions"].getInt()))
