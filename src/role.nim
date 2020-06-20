@@ -11,6 +11,7 @@ type Role* = ref object of DiscordObject
     guildID*: snowflake
 
 proc newRole*(json: JsonNode, guild: snowflake): Role =
+    ## Parses role from json.
     result = Role(
         id: getIDFromJson(json["id"].getStr()),
         name: json["name"].getStr(),
