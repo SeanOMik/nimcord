@@ -56,3 +56,9 @@ proc getUser*(cache: Cache, id: snowflake): User =
             return member.user
 
     return newUser(sendRequest(endpoint("/users/" & $id), HttpGet, defaultHeaders()))
+
+proc cacheGuildChannel*(cache: var Cache, guildID: snowflake, channel: Channel) = 
+    ## Adds a channel in cache.guilds[guildID].channels.
+    ## Only used for internal library, dont touch!
+    var guild = cache.getGuild(guildID)
+    guild.channels.add(channel)
