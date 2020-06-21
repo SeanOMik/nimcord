@@ -1,4 +1,4 @@
-import json, discordobject, emoji, nimcordutils, times
+import json, discordobject, emoji, nimcordutils, tables, times
 
 type 
     ClientStatus* = enum
@@ -12,7 +12,7 @@ type
         activityTypeGame = 0,
         activityTypeStreaming = 1,
         activityTypeListening = 2,
-        activityTypeCustom = 3
+        activityTypeCustom = 4
 
     ActivityFlag* = enum
         activityFlagInstance = 0,
@@ -59,7 +59,7 @@ type
         flags*: uint
 
     Presence* = ref object
-        status*: ClientStatus
+        status*: string
         game*: Activity
         activities*: seq[Activity]
         afk*: bool
@@ -74,9 +74,6 @@ proc newActivity*(json: JsonNode, guildID: snowflake): Activity =
         applicationID: getIDFromJson(json{"application_id"}.getStr()),
         details: json{"details"}.getStr(),
         state: json{"state"}.getStr(),
-        #party?
-        #assets?
-        #secrets
         instance: json{"instance"}.getBool(),
         flags: uint(json{"flags"}.getInt()),
     )
@@ -122,10 +119,23 @@ proc newActivity*(json: JsonNode, guildID: snowflake): Activity =
         if (json["secrets"].contains("match")):
             secrets.match = json["secrets"]["match"].getStr()
 
+proc newPresence*(json: JsonNode): Presence =
+    ## Parses Presence type from json.
+    result = Presence(
+        status: json["status"].getStr()
+    )
+
+    if (json.contains("game") and json["game"].getFields().len > 0):
+        result.game = newActivity(json["game"], getIDFromJson(json{"guild_id"}.getStr()))
+
+    if json.contains("activities"):
+        for activity in json["activities"]:
+            result.activities.add(newActivity(json["game"], getIDFromJson(json{"guild_id"}.getStr())))
+
 proc newPresence*(text: string, `type`: ActivityType, status: ClientStatus, afk: bool = false): Presence =
     ## Used to create a presence that you can use to update the presence of your bot's user.
     return Presence(
-        status: status,
+        status: $status,
         afk: afk,
         game: Activity(
             name: text,

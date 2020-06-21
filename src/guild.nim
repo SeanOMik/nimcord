@@ -1,6 +1,6 @@
 import json, discordobject, channel, member, options, nimcordutils, emoji 
 import role, permission, httpcore, strformat, image, asyncdispatch, user
-import permission
+import permission, presence, tables
 
 type 
     VerificationLevel* = enum
@@ -244,7 +244,18 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
     if (json.contains("channels")):
         for channel in json["channels"]:
             g.channels.insert(newChannel(channel))
-    #TODO: presences
+    if (json.contains("presences")):
+        # Parse all presences
+        var tmpPresences = initTable[snowflake, Presence]()
+        for presence in json["presences"]:
+            tmpPresences.add(getIDFromJson(presence["user"]["id"].getStr()), newPresence(presence))
+
+        # Check if the `tmpPresences` variable has a presence for the member,
+        # if it does, then update the member to include its presence.
+        for member in g.members:
+            if (tmpPresences.hasKey(member.user.id)):
+                member.presence = tmpPresences[member.user.id]
+
     if (json.contains("max_presences")):
         g.maxPresences = json["max_presences"].getInt()
     if (json.contains("max_members")):

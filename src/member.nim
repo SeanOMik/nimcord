@@ -1,4 +1,4 @@
-import discordobject, user, json, role, options, asyncdispatch, nimcordutils, httpcore, strformat, strutils
+import discordobject, user, json, role, options, asyncdispatch, nimcordutils, httpcore, strformat, strutils, presence
 
 type GuildMember* = ref object of DiscordObject
     ## This type is a guild member.
@@ -10,6 +10,7 @@ type GuildMember* = ref object of DiscordObject
     deaf*: bool ## Whether the user is deafened in voice channels.
     mute*: bool ## Whether the user is muted in voice channels.
     guildID*: snowflake ## The guild this member is in.
+    presence*: Presence ## The member's presence.
 
 proc newGuildMember*(json: JsonNode, guild: snowflake): GuildMember {.inline.} =
     ## Construct a GuildMember using json.
