@@ -1,6 +1,6 @@
 import websocket, asyncdispatch, json, httpClient, eventdispatcher, strformat
 import eventhandler, streams, nimcordutils, discordobject, user, cache, clientobjects
-import strutils, channel, options, message, emoji, guild, embed, os
+import strutils, channel, options, message, emoji, guild, embed, os, presence
 
 const 
     nimcordMajor = 0
@@ -103,6 +103,15 @@ proc startConnection*(client: DiscordClient) {.async.} =
     else:
         raise newException(IOError, "Failed to get gateway url, token may of been incorrect!")
 
+proc updateClientPresence*(client: DiscordClient, presence: Presence) {.async.} =
+    let jsonPayload = %* {
+        "op": ord(opPresenceUpdate),
+        "d": presence.presenceToJson()
+    }
+
+    echo "payload:", jsonPayload
+    await client.sendGatewayRequest(jsonPayload)
+
 proc newDiscordClient(tkn: string): DiscordClient =
     ## Create a DiscordClient using a token.
     ## 
@@ -133,6 +142,9 @@ registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
     echo "Logged in as: ", bot.clientUser.username, "#", bot.clientUser.discriminator
     echo "ID: ", bot.clientUser.id
     echo "--------------------"
+
+    let presence = newPresence("with Nimcord", activityTypeGame, clientStatusIdle, false)
+    asyncCheck event.client.updateClientPresence(presence)
 )
 
 registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
