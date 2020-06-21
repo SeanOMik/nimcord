@@ -1,4 +1,4 @@
-import json, discordobject, user, options, nimcordutils, message, httpcore, asyncdispatch, asyncfutures, permission, embed, httpclient, streams
+import json, discordobject, user, options, nimcordutils, message, httpcore, asyncdispatch, asyncfutures, permission, embed, httpclient, streams, strformat
 
 type 
     ChannelType* = enum
@@ -363,6 +363,11 @@ proc createChannelInvite*(channel: Channel, fields: CreateInviteFields): Invite 
         RateLimitBucketType.channel, createPayload))
 
 #TODO: https://discord.com/developers/docs/resources/channel#delete-channel-permission
+proc deleteChannelPermission*(channel: Channel, overwrite: Permissions) {.async.} =
+    ## Delete a channel permission overwrite for a user or role in a channel. 
+    ## Only usable for guild channels. Requires the `MANAGE_ROLES` permission.
+    discard sendRequest(endpoint(fmt("/channels/{channel.id}/permissions/{overwrite.roleUserID}")), 
+        HttpDelete, defaultHeaders(), channel.id, RateLimitBucketType.channel)
 
 proc triggerTypingIndicator*(channel: Channel) {.async.} =
     ## Post a typing indicator for the specified channel.
