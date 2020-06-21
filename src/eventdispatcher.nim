@@ -21,11 +21,17 @@ proc readyEvent(discordClient: DiscordClient, json: JsonNode) =
 
 proc channelCreateEvent(discordClient: DiscordClient, json: JsonNode) = 
     let chnl = newChannel(json)
-    let channelCreateEvnt = ChannelCreateEvent(client: discordClient, channel: chnl, name: $EventType.evtChannelCreate)
+    let channelCreateEvent = ChannelCreateEvent(client: discordClient, channel: chnl, name: $EventType.evtChannelCreate)
+
+    # Add the channel to its guild's `channels` field
+    if (chnl.guildID != 0):
+        discordClient.cache.cacheGuildChannel(chnl.guildID, chnl)
+    discordClient.cache.channels.add(chnl)
+
     dispatchEvent(channelCreateEvent)
 
-proc channelUpdateEvent(discordClient: DiscordClient, json: JsonNode) = 
-proc channelDeleteEvent(discordClient: DiscordClient, json: JsonNode) = 
+#proc channelUpdateEvent(discordClient: DiscordClient, json: JsonNode) = 
+#proc channelDeleteEvent(discordClient: DiscordClient, json: JsonNode) = 
 
 proc messageCreateEvent(discordClient: DiscordClient, json: JsonNode) =
     let msg = newMessage(json)
@@ -44,7 +50,8 @@ proc guildCreateEvent(discordClient: DiscordClient, json: JsonNode) =
 let internalEventTable: Table[string, proc(discordClient: DiscordClient, json: JsonNode) {.nimcall.}] = {
         "READY": readyEvent,
         "MESSAGE_CREATE": messageCreateEvent,
-        "GUILD_CREATE": guildCreateEvent
+        "GUILD_CREATE": guildCreateEvent,
+        "CHANNEL_CREATE": channelCreateEvent
     }.toTable
 
 proc handleDiscordEvent*(discordClient: DiscordClient, json: JsonNode, eventName: string) {.async.} =
