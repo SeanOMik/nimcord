@@ -271,10 +271,14 @@ proc removeAllReactions*(message: Message, emoji: Emoji) {.async.} =
         "/reactions/" & emoji.toUrlEncoding()), HttpDelete, defaultHeaders(), message.channelID, 
         RateLimitBucketType.channel)
 
-#TODO: Embeds and maybe flags?
-proc editMessage*(message: Message, content: string): Future[Message] {.async.} =
+#TODO: Maybe allow editing of message flags?
+proc editMessage*(message: Message, content: string, embed: Embed = nil): Future[Message] {.async.} =
     ## Edit a previously sent message.
-    let jsonBody = %*{"content": content}
+    var jsonBody = %*{"content": content}
+
+    if (not embed.isNil()):
+        jsonBody.add("embed", embed.embedJson)
+
     return newMessage(sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id),
         HttpPatch, defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), 
         message.channelID, RateLimitBucketType.channel, jsonBody))
