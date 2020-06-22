@@ -9,5 +9,6 @@ type DiscordClient* = ref object
     heartbeatInterval*: int
     heartbeatAcked*: bool
     lastSequence*: int
-
-var globalDiscordClient*: DiscordClient ## Global instance of the DiscordClient.
+    endpoint*: string
+    reconnecting*: bool
+    sessionID*: string

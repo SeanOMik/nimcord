@@ -109,7 +109,6 @@ proc updateClientPresence*(client: DiscordClient, presence: Presence) {.async.} 
         "d": presence.presenceToJson()
     }
 
-    echo "payload:", jsonPayload
     await client.sendGatewayRequest(jsonPayload)
 
 proc newDiscordClient(tkn: string): DiscordClient =
@@ -121,8 +120,7 @@ proc newDiscordClient(tkn: string): DiscordClient =
     var cac: Cache
     new(cac)
 
-    result = DiscordClient(token: tkn, cache: cac)
-    globalDiscordClient = result
+    result = DiscordClient(token: tkn, cache: cac, reconnecting: false)
 
 var tokenStream = newFileStream("token.txt", fmRead)
 var tkn: string
@@ -136,7 +134,6 @@ var bot = newDiscordClient(tkn)
 
 registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
     let event = ReadyEvent(bEvt)
-    bot.clientUser = event.clientUser
 
     echo "Ready! (v", nimcordMajor, ".", nimcordMinor, ".", nimcordMicro, ")"
     echo "Logged in as: ", bot.clientUser.username, "#", bot.clientUser.discriminator

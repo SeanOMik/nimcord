@@ -51,7 +51,6 @@ type
         ## The ready event is triggered everytime the bot starts up.
         ## Stores the readyPayload (JSON Payload) that gets received and the bot's user.
         readyPayload*: JsonNode
-        clientUser*: User
 
     # Channel Events
 
