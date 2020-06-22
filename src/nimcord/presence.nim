@@ -79,20 +79,19 @@ proc newActivity*(json: JsonNode, guildID: snowflake): Activity =
     )
 
     if (json.contains("timestamps")):
-        for timestamp in json["timestamps"]:
-            var time: ActivityTimestamp
-            if (timestamp.contains("start")):
-                time.startTime = uint(timestamp["start"].getInt())
-            if (timestamp.contains("end")):
-                time.endTime = uint(timestamp["end"].getInt())
+        var time = ActivityTimestamp()
+        if (json["timestamps"].contains("start")):
+            time.startTime = uint(json["timestamps"]{"start"}.getInt())
+        if (json["timestamps"].contains("end")):
+            time.endTime = uint(json["timestamps"]{"end"}.getInt())
 
-            act.timestamps.add(time)
+        act.timestamps.add(time)
                 
     if (json.contains("emoji")):
         act.emoji = newEmoji(json["emoji"], guildID)
 
     if (json.contains("party")):
-        var party: ActivityParty
+        var party = ActivityParty()
         if (json["party"].contains("id")):
             party.id = json["party"]["id"].getStr()
         if (json["party"].contains("size")):
@@ -100,7 +99,7 @@ proc newActivity*(json: JsonNode, guildID: snowflake): Activity =
             party.maxSize = uint(json["party"]["size"].elems[1].getInt())
 
     if (json.contains("assets")):
-        var assets: ActivityAssets
+        var assets = ActivityAssets()
         if (json["assets"].contains("large_image")):
             assets.largeImg = json["assets"]["large_image"].getStr()
         if (json["assets"].contains("large_text")):
@@ -111,7 +110,7 @@ proc newActivity*(json: JsonNode, guildID: snowflake): Activity =
             assets.smallText = json["assets"]["small_text"].getStr()
 
     if (json.contains("secrets")):
-        var secrets: ActivitySecrets
+        var secrets = ActivitySecrets()
         if (json["secrets"].contains("join")):
             secrets.join = json["secrets"]["join"].getStr()
         if (json["secrets"].contains("spectate")):
@@ -126,7 +125,8 @@ proc newPresence*(json: JsonNode): Presence =
     )
 
     if (json.contains("game") and json["game"].getFields().len > 0):
-        result.game = newActivity(json["game"], getIDFromJson(json{"guild_id"}.getStr()))
+        let guildID = if json.contains("guild_id"): getIDFromJson(json["guild_id"].getStr()) else: 0
+        result.game = newActivity(json["game"], guildID)
 
     if json.contains("activities"):
         for activity in json["activities"]:
