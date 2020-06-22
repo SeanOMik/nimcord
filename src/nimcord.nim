@@ -14,11 +14,13 @@
 ## procs are only used by Nimcord and likely wont be useful to the user.
 
 import nimcord/[cache, channel, client, clientobjects, discordobject]
-import nimcord/[embed, eventdispatcher, guild, image, member, message]
-import nimcord/[nimcordutils, permission, presence, role, user]
+import nimcord/[embed, emoji, eventdispatcher, eventhandler, guild]
+import nimcord/[image, member, message, nimcordutils, permission]
+import nimcord/[presence, role, user]
 
 export cache, channel, client, clientobjects, discordobject
-export embed, eventdispatcher, guild, image, member, message
-export nimcordutils, permission, presence, role, user
+export embed, emoji, eventdispatcher, eventhandler, guild
+export image, member, message, nimcordutils, permission
+export presence, role, user
 
 const NimCordVersion = "v0.0.1"
