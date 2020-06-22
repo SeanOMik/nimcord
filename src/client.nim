@@ -29,7 +29,7 @@ proc sendGatewayRequest*(client: DiscordClient, request: JsonNode, msg: string =
     else:
         echo msg
 
-    discard client.ws.sendText($request)
+    await client.ws.sendText($request)
 
 proc handleHeartbeat(client: DiscordClient) {.async.} =
     while true:
@@ -48,7 +48,37 @@ proc handleHeartbeat(client: DiscordClient) {.async.} =
 proc getIdentifyPacket(client: DiscordClient): JsonNode =
     return %* { "op": ord(DiscordOpCode.opIdentify), "d": { "token": client.token, "properties": { "$os": system.hostOS, "$browser": "NimCord", "$device": "NimCord" } } }
 
-#TODO: Reconnecting. It should be pretty easy tbh.
+proc startConnection*(client: DiscordClient) {.async.}
+
+proc closeConnection*(client: DiscordClient, code: int = 1000) {.async.} =
+    echo "Disconnecting with code: ", code
+    await client.ws.close(code)
+
+proc reconnectClient(client: DiscordClient) {.async.} =
+    client.reconnecting = true
+    await client.ws.close(1000)
+    waitFor client.startConnection()
+
+# Handle discord disconnect. If it detects that we can reconnect, it will.
+proc handleDiscordDisconnect(client: DiscordClient, error: string) {.async.} =
+    let disconnectData = extractCloseData(error)
+
+    echo "Discord gateway disconnected! Error code: ", disconnectData.code, ", msg: ", disconnectData.reason
+
+    client.heartbeatAcked = false
+    
+    # The disconnect code
+    let c = disconnectData.code
+
+    # 4003, 4004, 4005, 4007, 4010, 4011, 4012, 4013 are not reconnectable.
+    if ( (c >= 4003 and c <= 4005) or c == 4007 or (c >= 4010 and c <= 4013) ):
+            echo "The Discord gateway sent a disconnect code that we cannot reconnect to."
+    else:
+        if (not client.reconnecting):
+            await client.reconnectClient()
+            
+
+#TODO: Reconnecting may be done, just needs testing.
 proc handleWebsocketPacket(client: DiscordClient) {.async.} = 
     while true:
         var packet: tuple[opcode: Opcode, data: string]
@@ -56,22 +86,58 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
         packet = await client.ws.readData();
         echo "Received gateway payload: ", packet.data
 
-        var json: JsonNode = parseJson(packet.data);
+        if packet.opcode == Opcode.Close:
+            asyncCheck client.handleDiscordDisconnect(packet.data)
+
+        var json: JsonNode
+
+        # If we fail to parse the json just stop this loop
+        try:
+            json = parseJson(packet.data);
+        except:
+            echo "Failed to parse websocket payload: ", packet.data
+            continue
 
         if (json.contains("s")):
             client.lastSequence = json["s"].getInt()
 
         case json["op"].getInt()
             of ord(DiscordOpCode.opHello):
-                client.heartbeatInterval = json["d"]["heartbeat_interval"].getInt()
-                discard client.sendGatewayRequest(client.getIdentifyPacket())
+                if client.reconnecting:
+                    echo "Reconnected!"
+                    client.reconnecting = false
 
-                asyncCheck client.handleHeartbeat()
-                client.heartbeatAcked = true
+                    let resume = %* {
+                        "op": opResume,
+                        "session_id": client.sessionID,
+                        "seq": client.lastSequence
+                    }
+
+                    await client.sendGatewayRequest(resume)
+                else:
+                    client.heartbeatInterval = json["d"]["heartbeat_interval"].getInt()
+                    await client.sendGatewayRequest(client.getIdentifyPacket())
+
+                    asyncCheck client.handleHeartbeat()
+                    client.heartbeatAcked = true
             of ord(DiscordOpCode.opHeartbeatAck):
                 client.heartbeatAcked = true
             of ord(DiscordOpCode.opDispatch):
-                asyncCheck(handleDiscordEvent(client, json["d"], json["t"].getStr()))
+                asyncCheck handleDiscordEvent(client, json["d"], json["t"].getStr())
+            of ord(DiscordOpCode.opReconnect):
+                asyncCheck client.reconnectClient()
+            of ord(DiscordOpCode.opInvalidSession):
+                # If the json field `d` is true then the session may be resumable.
+                if json["d"].getBool():
+                    let resume = %* {
+                        "op": opResume,
+                        "session_id": client.sessionID,
+                        "seq": client.lastSequence
+                    }
+
+                    await client.sendGatewayRequest(resume)
+                else:
+                    asyncCheck client.reconnectClient()
             else:
                 discard
 
@@ -90,16 +156,20 @@ proc startConnection*(client: DiscordClient) {.async.} =
     ##   tokenStream.close()
     ## 
     ##   var bot = newDiscordClient(tkn)
+    echo "Connecting..."
+
     let urlResult = sendRequest(endpoint("/gateway/bot"), HttpMethod.HttpGet, defaultHeaders())
     if (urlResult.contains("url")):
+
         let url = urlResult["url"].getStr()
+        client.endpoint = url
 
         client.ws = await newAsyncWebsocketClient(url[6..url.high], Port 443,
             path = "/v=6&encoding=json", true)
-        echo "Connected!"
 
-        asyncCheck client.handleWebsocketPacket()
-        runForever()
+        if not client.reconnecting:
+            asyncCheck client.handleWebsocketPacket()
+            runForever()
     else:
         raise newException(IOError, "Failed to get gateway url, token may of been incorrect!")
 
@@ -219,6 +289,12 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             embed.setTitle("Image attachment test.")
             embed.setImage("attachment://" & fileName)
             discard channel.sendMessage("", false, embed, @[file])
+    elif (event.message.content.startsWith("?reconnect")):
+        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        if (channel != nil):
+            discard channel.sendMessage("Reconnecting...")
+            #asyncCheck event.client.reconnectClient()
+            asyncCheck event.client.ws.sendText("aaaa")
 )
 
 waitFor bot.startConnection()

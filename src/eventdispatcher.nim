@@ -12,10 +12,10 @@ proc readyEvent(discordClient: DiscordClient, json: JsonNode) =
     echo "Sending GET request, URL: body: {}"
 
     waitForRateLimits(0, RateLimitBucketType.global)
-    var json = handleResponse(client.request(endpoint("/users/@me"), HttpGet, ""), 0, RateLimitBucketType.global)
+    var userJson = handleResponse(client.request(endpoint("/users/@me"), HttpGet, ""), 0, RateLimitBucketType.global)
 
-    let clientUser: User = newUser(json)
-    readyEvent.clientUser = clientUser
+    discordClient.clientUser = newUser(userJson)
+    discordClient.sessionID = json["session_id"].getStr()
     
     dispatchEvent(readyEvent)
 
