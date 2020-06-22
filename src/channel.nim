@@ -362,7 +362,6 @@ proc createChannelInvite*(channel: Channel, fields: CreateInviteFields): Invite 
         defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), channel.id, 
         RateLimitBucketType.channel, createPayload))
 
-#TODO: https://discord.com/developers/docs/resources/channel#delete-channel-permission
 proc deleteChannelPermission*(channel: Channel, overwrite: Permissions) {.async.} =
     ## Delete a channel permission overwrite for a user or role in a channel. 
     ## Only usable for guild channels. Requires the `MANAGE_ROLES` permission.
