@@ -1,10 +1,7 @@
-# Package
+version       = "0.0.1"
+author        = "SeanOMik"
+description   = "Discord API wrapper written in Nim. Inspired by DisC++, my other discord library."
+license       = "MIT"
+srcDir        = "src"
 
-version = "0.0.0"
-author = "SeanOMik, Intexisty"
-description = "Discord API wrapper written in Nim. Inspired by discord.py"
-license = "MIT"
-
-# Dependencies
-
-requires "nim >= 1.0.4", "websocket == 0.4.1"
+requires "nim >= 1.0.0", "websocket >= 0.4.0 & <= 0.4.1"
