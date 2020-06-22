@@ -15,11 +15,12 @@ proc newEmoji*(json: JsonNode, guild: snowflake): Emoji =
     ## Construct an emoji with json.
     ## This shouldn't really be used by the user, only internal use.
     result = Emoji(
-        id: getIDFromJson(json["id"].getStr()),
         name: json["name"].getStr(),
         guildID: guild
     )
 
+    if (json.contains("id")):
+        result.id = getIDFromJson(json["id"].getStr())
     if (json.contains("roles")):
         for role in json["roles"]:
             result.roles.add(getIDFromJson(role.getStr()))
