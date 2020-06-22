@@ -213,7 +213,7 @@ var bot = newDiscordClient(tkn)
 registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
     let event = ReadyEvent(bEvt)
 
-    echo "Ready! (v", nimcordMajor, ".", nimcordMinor, ".", nimcordMicro, ")"
+    echo "Ready! (v", 0, ".", 0, ".", 1, ")"
     echo "Logged in as: ", bot.clientUser.username, "#", bot.clientUser.discriminator
     echo "ID: ", bot.clientUser.id
     echo "--------------------"
