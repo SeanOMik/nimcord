@@ -2,11 +2,6 @@ import websocket, asyncdispatch, json, httpClient, eventdispatcher, strformat
 import eventhandler, streams, nimcordutils, discordobject, user, cache, clientobjects
 import strutils, channel, options, message, emoji, guild, embed, os, presence
 
-const 
-    nimcordMajor = 0
-    nimcordMinor = 0
-    nimcordMicro = 0
-
 type
     DiscordOpCode = enum
         opDispatch = 0,
