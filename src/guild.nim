@@ -548,7 +548,7 @@ proc getGuildMember*(guild: var Guild, memberID: snowflake): GuildMember =
             return member
 
     result = newGuildMember(sendRequest(endpoint(fmt("/guilds/{guild.id}/members/{memberID}")), 
-        HttpPatch, defaultHeaders(), guild.id, RateLimitBucketType.guild), guild.id)
+        HttpGet, defaultHeaders(), guild.id, RateLimitBucketType.guild), guild.id)
     guild.members.add(result)
 
 # Would this endpoint be worth adding? https://discord.com/developers/docs/resources/guild#list-guild-members
