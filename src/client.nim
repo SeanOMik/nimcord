@@ -55,9 +55,16 @@ proc closeConnection*(client: DiscordClient, code: int = 1000) {.async.} =
     await client.ws.close(code)
 
 proc reconnectClient(client: DiscordClient) {.async.} =
+    echo "Reconnecting..."
     client.reconnecting = true
     await client.ws.close(1000)
-    waitFor client.startConnection()
+
+    client.ws = await newAsyncWebsocketClient(client.endpoint[6..client.endpoint.high], Port 443,
+            path = "/v=6&encoding=json", true)
+
+    client.reconnecting = false
+    client.heartbeatAcked = true
+    #waitFor client.startConnection()
 
 # Handle discord disconnect. If it detects that we can reconnect, it will.
 proc handleDiscordDisconnect(client: DiscordClient, error: string) {.async.} =
@@ -67,15 +74,17 @@ proc handleDiscordDisconnect(client: DiscordClient, error: string) {.async.} =
 
     client.heartbeatAcked = false
     
-    # The disconnect code
+    # Get the disconnect code
     let c = disconnectData.code
 
     # 4003, 4004, 4005, 4007, 4010, 4011, 4012, 4013 are not reconnectable.
     if ( (c >= 4003 and c <= 4005) or c == 4007 or (c >= 4010 and c <= 4013) ):
-            echo "The Discord gateway sent a disconnect code that we cannot reconnect to."
+        echo "The Discord gateway sent a disconnect code that we cannot reconnect to."
     else:
         if (not client.reconnecting):
-            await client.reconnectClient()
+            waitFor client.reconnectClient()
+        else:
+            echo "Gateway is cannot reconnect due to already reconnecting..."
             
 
 #TODO: Reconnecting may be done, just needs testing.
@@ -87,7 +96,7 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
         echo "Received gateway payload: ", packet.data
 
         if packet.opcode == Opcode.Close:
-            asyncCheck client.handleDiscordDisconnect(packet.data)
+            await client.handleDiscordDisconnect(packet.data)
 
         var json: JsonNode
 
@@ -108,9 +117,12 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
                     client.reconnecting = false
 
                     let resume = %* {
-                        "op": opResume,
-                        "session_id": client.sessionID,
-                        "seq": client.lastSequence
+                        "op": ord(opResume),
+                        "d": {
+                            "token": client.token,
+                            "session_id": client.sessionID,
+                            "seq": client.lastSequence
+                        }
                     }
 
                     await client.sendGatewayRequest(resume)
@@ -130,7 +142,7 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
                 # If the json field `d` is true then the session may be resumable.
                 if json["d"].getBool():
                     let resume = %* {
-                        "op": opResume,
+                        "op": ord(opResume),
                         "session_id": client.sessionID,
                         "seq": client.lastSequence
                     }
@@ -160,16 +172,17 @@ proc startConnection*(client: DiscordClient) {.async.} =
 
     let urlResult = sendRequest(endpoint("/gateway/bot"), HttpMethod.HttpGet, defaultHeaders())
     if (urlResult.contains("url")):
-
         let url = urlResult["url"].getStr()
         client.endpoint = url
 
         client.ws = await newAsyncWebsocketClient(url[6..url.high], Port 443,
             path = "/v=6&encoding=json", true)
 
-        if not client.reconnecting:
-            asyncCheck client.handleWebsocketPacket()
-            runForever()
+        asyncCheck client.handleWebsocketPacket()
+        # Now just wait. Dont poll for new events while we're reconnecting
+        while true:
+            if not client.reconnecting:
+                poll()
     else:
         raise newException(IOError, "Failed to get gateway url, token may of been incorrect!")
 
