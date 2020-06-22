@@ -1,23 +1,22 @@
-import message, member, channel, guild, discordobject, nimcordutils, httpcore, user
+import message, member, channel, guild, discordobject, nimcordutils, httpcore, user, tables
 
 type Cache* = ref object
-    members*: seq[GuildMember]
-    messages*: seq[Message]
-    channels*: seq[Channel]
-    guilds*: seq[Guild]
+    members*: Table[snowflake, GuildMember]
+    messages*: Table[snowflake, Message]
+    channels*: Table[snowflake, Channel]
+    guilds*: Table[snowflake, Guild]
 
 proc getChannel*(cache: var Cache, id: snowflake): Channel =
     ## Get a channel object from the id.
     ## 
     ## If for some reason the channel is not in cache, it gets requested via the 
     ## Discord REST API.
-    for channel in cache.channels:
-        if (channel.id == id):
-            return channel
+    if (cache.channels.hasKey(id)):
+        return cache.channels[id]
     
     result = newChannel(sendRequest(endpoint("/channels/" & $id), HttpGet, defaultHeaders(), 
         id, RateLimitBucketType.channel))
-    cache.channels.add(result)
+    cache.channels.add(id, result)
 
 proc getMessageChannel*(msg: Message, cache: var Cache): Channel =
     ## Get a message's channel object.
@@ -31,13 +30,12 @@ proc getGuild*(cache: var Cache, id: snowflake): Guild =
     ## 
     ## If for some reason the guild is not in cache, it gets requested via the 
     ## Discord REST API.
-    for guild in cache.guilds:
-        if (guild.id == id):
-            return guild
+    if (cache.guilds.hasKey(id)):
+        return cache.guilds[id]
     
     result = newGuild(sendRequest(endpoint("/guilds/" & $id), HttpGet, defaultHeaders(), 
         id, RateLimitBucketType.guild))
-    cache.guilds.add(result)
+    cache.guilds.add(result.id, result)
 
 proc getChannelGuild*(channel: Channel, cache: var Cache): Guild =
     ## Get a channels's guild object.
@@ -51,9 +49,8 @@ proc getUser*(cache: Cache, id: snowflake): User =
     ## 
     ## If for some reason the user is not in cache, it gets requested via the 
     ## Discord REST API.
-    for member in cache.members:
-        if (member.user.id == id):
-            return member.user
+    if (cache.members.hasKey(id)):
+        return cache.members[id].user
 
     return newUser(sendRequest(endpoint("/users/" & $id), HttpGet, defaultHeaders()))
 
