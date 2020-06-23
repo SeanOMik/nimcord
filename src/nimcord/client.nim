@@ -16,7 +16,7 @@ type
         opHello = 10,
         opHeartbeatAck = 11
 
-proc sendGatewayRequest*(client: DiscordClient, request: JsonNode, msg: string = "") {.async.} =
+proc sendGatewayRequest*(shard: Shard, request: JsonNode, msg: string = "") {.async.} =
     ## Send a gateway request.
     ## Don't use this unless you know what you're doing!
     if (msg.len == 0):
@@ -24,50 +24,62 @@ proc sendGatewayRequest*(client: DiscordClient, request: JsonNode, msg: string =
     else:
         echo msg
 
-    await client.ws.sendText($request)
+    await shard.ws.sendText($request)
 
-proc handleHeartbeat(client: DiscordClient) {.async.} =
+proc handleHeartbeat(shard: Shard) {.async.} =
     while true:
         var heartbeatPayload: JsonNode
-        if (client.lastSequence == 0):
+        if (shard.lastSequence == 0):
             heartbeatPayload = %* { "d": nil, "op": ord(DiscordOpCode.opHeartbeat) }
         else:
-            heartbeatPayload = %* { "d": client.lastSequence, "op": ord(DiscordOpCode.opHeartbeat) }
+            heartbeatPayload = %* { "d": shard.lastSequence, "op": ord(DiscordOpCode.opHeartbeat) }
 
-        await client.sendGatewayRequest(heartbeatPayload, fmt("Sending heartbeat payload: {$heartbeatPayload}"))
-        client.heartbeatAcked = true
+        await shard.sendGatewayRequest(heartbeatPayload, fmt("Sending heartbeat payload: {$heartbeatPayload}"))
+        shard.heartbeatAcked = true
 
-        echo "Waiting ", client.heartbeatInterval, " ms until next heartbeat..."
-        await sleepAsync(client.heartbeatInterval)
+        echo "Waiting ", shard.heartbeatInterval, " ms until next heartbeat..."
+        await sleepAsync(shard.heartbeatInterval)
 
-proc getIdentifyPacket(client: DiscordClient): JsonNode =
-    return %* { "op": ord(DiscordOpCode.opIdentify), "d": { "token": client.token, "properties": { "$os": system.hostOS, "$browser": "NimCord", "$device": "NimCord" } } }
+proc getIdentifyPacket(shard: Shard): JsonNode =
+    return %* {
+        "op": ord(DiscordOpCode.opIdentify),
+        "d": {
+            "token": shard.client.token,
+            "shard": [shard.id, shard.client.shardCount],
+            "properties": {
+                "$os": system.hostOS,
+                "$browser": "NimCord",
+                "$device": "NimCord"
+            }
+        }
+    }
 
-proc startConnection*(client: DiscordClient) {.async.}
+# For some reason this shows as an error in VSCode, but it compiles fine.
+#proc startConnection*(client: DiscordClient, shardCount: int = 1) {.async.}
 
-proc closeConnection*(client: DiscordClient, code: int = 1000) {.async.} =
+proc closeConnection*(shard: Shard, code: int = 1000) {.async.} =
     echo "Disconnecting with code: ", code
-    await client.ws.close(code)
+    await shard.ws.close(code)
 
-proc reconnectClient(client: DiscordClient) {.async.} =
+proc reconnectShard(shard: Shard) {.async.} =
     echo "Reconnecting..."
-    client.reconnecting = true
-    await client.ws.close(1000)
+    shard.reconnecting = true
+    await shard.ws.close(1000)
 
-    client.ws = await newAsyncWebsocketClient(client.endpoint[6..client.endpoint.high], Port 443,
+    shard.ws = await newAsyncWebsocketClient(shard.client.endpoint[6..shard.client.endpoint.high], Port 443,
             path = "/v=6&encoding=json", true)
 
-    client.reconnecting = false
-    client.heartbeatAcked = true
+    shard.reconnecting = false
+    shard.heartbeatAcked = true
     #waitFor client.startConnection()
 
 # Handle discord disconnect. If it detects that we can reconnect, it will.
-proc handleDiscordDisconnect(client: DiscordClient, error: string) {.async.} =
+proc handleGatewayDisconnect(shard: Shard, error: string) {.async.} =
     let disconnectData = extractCloseData(error)
 
     echo "Discord gateway disconnected! Error code: ", disconnectData.code, ", msg: ", disconnectData.reason
 
-    client.heartbeatAcked = false
+    shard.heartbeatAcked = false
     
     # Get the disconnect code
     let c = disconnectData.code
@@ -76,22 +88,22 @@ proc handleDiscordDisconnect(client: DiscordClient, error: string) {.async.} =
     if ( (c >= 4003 and c <= 4005) or c == 4007 or (c >= 4010 and c <= 4013) ):
         echo "The Discord gateway sent a disconnect code that we cannot reconnect to."
     else:
-        if (not client.reconnecting):
-            waitFor client.reconnectClient()
+        if (not shard.reconnecting):
+            waitFor shard.reconnectShard()
         else:
             echo "Gateway is cannot reconnect due to already reconnecting..."
             
 
 #TODO: Reconnecting may be done, just needs testing.
-proc handleWebsocketPacket(client: DiscordClient) {.async.} = 
+proc handleWebsocketPacket(shard: Shard) {.async.} = 
     while true:
         var packet: tuple[opcode: Opcode, data: string]
 
-        packet = await client.ws.readData();
-        echo "Received gateway payload: ", packet.data
+        packet = await shard.ws.readData();
+        echo "[SHARD ", $shard.id, "] Received gateway payload: ", packet.data
 
         if packet.opcode == Opcode.Close:
-            await client.handleDiscordDisconnect(packet.data)
+            await shard.handleGatewayDisconnect(packet.data)
 
         var json: JsonNode
 
@@ -103,52 +115,55 @@ proc handleWebsocketPacket(client: DiscordClient) {.async.} =
             continue
 
         if (json.contains("s")):
-            client.lastSequence = json["s"].getInt()
+            shard.lastSequence = json["s"].getInt()
 
         case json["op"].getInt()
             of ord(DiscordOpCode.opHello):
-                if client.reconnecting:
+                if shard.reconnecting:
                     echo "Reconnected!"
-                    client.reconnecting = false
+                    shard.reconnecting = false
 
                     let resume = %* {
                         "op": ord(opResume),
                         "d": {
-                            "token": client.token,
-                            "session_id": client.sessionID,
-                            "seq": client.lastSequence
+                            "token": shard.client.token,
+                            "session_id": shard.sessionID,
+                            "seq": shard.lastSequence
                         }
                     }
 
-                    await client.sendGatewayRequest(resume)
+                    await shard.sendGatewayRequest(resume)
                 else:
-                    client.heartbeatInterval = json["d"]["heartbeat_interval"].getInt()
-                    await client.sendGatewayRequest(client.getIdentifyPacket())
+                    shard.heartbeatInterval = json["d"]["heartbeat_interval"].getInt()
+                    await shard.sendGatewayRequest(shard.getIdentifyPacket())
 
-                    asyncCheck client.handleHeartbeat()
-                    client.heartbeatAcked = true
+                    asyncCheck shard.handleHeartbeat()
+                    shard.heartbeatAcked = true
             of ord(DiscordOpCode.opHeartbeatAck):
-                client.heartbeatAcked = true
+                shard.heartbeatAcked = true
             of ord(DiscordOpCode.opDispatch):
-                asyncCheck handleDiscordEvent(client, json["d"], json["t"].getStr())
+                asyncCheck handleDiscordEvent(shard, json["d"], json["t"].getStr())
             of ord(DiscordOpCode.opReconnect):
-                asyncCheck client.reconnectClient()
+                asyncCheck shard.reconnectShard()
             of ord(DiscordOpCode.opInvalidSession):
                 # If the json field `d` is true then the session may be resumable.
                 if json["d"].getBool():
                     let resume = %* {
                         "op": ord(opResume),
-                        "session_id": client.sessionID,
-                        "seq": client.lastSequence
+                        "session_id": shard.sessionID,
+                        "seq": shard.lastSequence
                     }
 
-                    await client.sendGatewayRequest(resume)
+                    await shard.sendGatewayRequest(resume)
                 else:
-                    asyncCheck client.reconnectClient()
+                    asyncCheck shard.reconnectShard()
             else:
                 discard
 
-proc startConnection*(client: DiscordClient) {.async.} =
+proc newShard(shardID: int, client: DiscordClient): Shard =
+    return Shard(id: shardID, client: client)
+
+proc startConnection*(client: DiscordClient, shardAmount: int = 1) {.async.} =
     ## Start a bot connection.
     ## 
     ## Examples:
@@ -170,24 +185,55 @@ proc startConnection*(client: DiscordClient) {.async.} =
         let url = urlResult["url"].getStr()
         client.endpoint = url
 
-        client.ws = await newAsyncWebsocketClient(url[6..url.high], Port 443,
+        var shardCount = shardAmount
+        if (shardCount < urlResult["shards"].getInt()):
+            shardCount = urlResult["shards"].getInt()
+        client.shardCount = shardCount
+
+        if shardCount > 1:
+            for index in 0..shardCount - 2:
+                var shard = newShard(index, client)
+                client.shards.add(shard)
+
+                shard.ws = await newAsyncWebsocketClient(url[6..url.high], Port 443,
+                    path = "/v=6&encoding=json", true)
+
+                asyncCheck shard.handleWebsocketPacket()
+
+                # Theres a 5 second delay on identify payloads.
+                await sleepAsync(5500)
+                
+        var shard = newShard(shardCount - 1, client)
+        client.shards.add(shard)
+
+        shard.ws = await newAsyncWebsocketClient(url[6..url.high], Port 443,
+            path = "/v=6&encoding=json", true)
+
+        asyncCheck shard.handleWebsocketPacket()
+
+        # Now just wait. Dont poll while we're reconnecting
+        while true:
+            if not shard.reconnecting:
+                poll()
+
+        #[ client.ws = await newAsyncWebsocketClient(url[6..url.high], Port 443,
             path = "/v=6&encoding=json", true)
 
         asyncCheck client.handleWebsocketPacket()
         # Now just wait. Dont poll for new events while we're reconnecting
         while true:
             if not client.reconnecting:
-                poll()
+                poll() ]#
     else:
         raise newException(IOError, "Failed to get gateway url, token may of been incorrect!")
 
-proc updateClientPresence*(client: DiscordClient, presence: Presence) {.async.} =
+proc updateClientPresence*(shard: Shard, presence: Presence) {.async.} =
     let jsonPayload = %* {
         "op": ord(opPresenceUpdate),
         "d": presence.presenceToJson()
     }
 
-    await client.sendGatewayRequest(jsonPayload)
+    await shard.sendGatewayRequest(jsonPayload)
 
 proc newDiscordClient*(tkn: string): DiscordClient =
     ## Create a DiscordClient using a token.
@@ -198,4 +244,4 @@ proc newDiscordClient*(tkn: string): DiscordClient =
     var cac: Cache
     new(cac)
 
-    result = DiscordClient(token: tkn, cache: cac, reconnecting: false)
+    result = DiscordClient(token: tkn, cache: cac)

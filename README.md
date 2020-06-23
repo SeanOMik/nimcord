@@ -45,6 +45,6 @@ You can view examples in the [examples](examples) directory.
   - [ ] Channel
   - [ ] Guild
   - [ ] Misc.
-- [ ] Sharding.
+- [x] Sharding.
 - [ ] Audit log.
 - [ ] Voice.

@@ -1,4 +1,4 @@
-import nimcord, asyncdispatch, streams, os, strutils, options
+import ../src/nimcord, asyncdispatch, streams, os, strutils, options, websocket
 
 var tokenStream = newFileStream("token.txt", fmRead)
 var tkn: string
@@ -19,37 +19,37 @@ registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
     echo "--------------------"
 
     let presence = newPresence("with Nimcord", activityTypeGame, clientStatusIdle, false)
-    asyncCheck event.client.updateClientPresence(presence)
+    asyncCheck event.shard.updateClientPresence(presence)
 )
 
 registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
     let event = MessageCreateEvent(bEvt)
 
     if (event.message.content == "?ping"):
-        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
         if (channel != nil):
             discard channel.sendMessage("PONG")
     elif (event.message.content.startsWith("?modifyChannelTopic")):
         let modifyTopic = event.message.content.substr(20)
 
-        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
         if (channel != nil):
             discard channel.sendMessage("Modifing Channel!")
             discard channel.modifyChannel(ChannelFields(topic: some(modifyTopic)))
     elif (event.message.content.startsWith("?deleteChannel")):
         let channelID = getIDFromJson(event.message.content.substr(15))
-        var channel: Channel = event.client.cache.getChannel(channelID)
+        var channel: Channel = event.shard.client.cache.getChannel(channelID)
         
         if (channel != nil):
             discard channel.sendMessage("Deleting Channel!")
             discard channel.deleteChannel()
             discard channel.sendMessage("Deleted Channel!")
     elif (event.message.content.startsWith("?getMessages")):
-        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
         if (channel != nil):
             discard channel.getMessages(MessagesGetRequest(limit: some(15), before: some(event.message.id)))
     elif (event.message.content.startsWith("?bulkDeleteMessages")):
-        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
         if (channel != nil):
             var amount: int = 25
             if (event.message.content.len > 19):
@@ -57,13 +57,13 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             let messages = channel.getMessages(MessagesGetRequest(limit: some(amount), before: some(event.message.id)))
             discard channel.bulkDeleteMessages(messages)
     elif (event.message.content.startsWith("?reactToMessage")):
-        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
         if (channel != nil):
             let emojis = @[newEmoji("⏮️"), newEmoji("⬅️"), newEmoji("⏹️"), newEmoji("➡️"), newEmoji("⏭️")]
             for emoji in emojis:
                 discard event.message.addReaction(emoji)
     elif (event.message.content.startsWith("?testEmbed")):
-        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
         if (channel != nil):
             var embed = Embed()
             embed.setTitle("This embed is being sent from Nimcord!")
@@ -74,7 +74,7 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             embed.setColor(0xffb900)
             discard channel.sendMessage("", false, embed)
     elif (event.message.content.startsWith("?sendFile")):
-        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
         if (channel != nil):
             let filePath = event.message.content.substr(10)
 
@@ -84,7 +84,7 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             let file = DiscordFile(filePath: filePath, fileName: fileName)
             discard channel.sendMessage("", false, nil, @[file])
     elif (event.message.content.startsWith("?sendImage")):
-        var channel: Channel = event.message.getMessageChannel(event.client.cache)
+        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
         if (channel != nil):
             let filePath = event.message.content.substr(11)
 
@@ -99,4 +99,4 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             discard channel.sendMessage("", false, embed, @[file])
 )
 
-waitFor bot.startConnection()
+waitFor bot.startConnection(2)

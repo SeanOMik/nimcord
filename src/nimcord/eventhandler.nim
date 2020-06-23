@@ -46,7 +46,7 @@ type
     BaseEvent* = object of RootObj
         ## Base event that all events inherit from.
         ## It stores a reference to the DiscordClient and name of the event.
-        client*: DiscordClient
+        shard*: Shard
         name*: string
 
     # Socket Events
