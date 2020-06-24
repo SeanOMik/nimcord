@@ -41,18 +41,20 @@ proc handleHeartbeat(shard: Shard) {.async.} =
         await sleepAsync(shard.heartbeatInterval)
 
 proc getIdentifyPacket(shard: Shard): JsonNode =
-    return %* {
+    result = %* {
         "op": ord(DiscordOpCode.opIdentify),
         "d": {
             "token": shard.client.token,
-            "shard": [shard.id, shard.client.shardCount],
-            "properties": {
+                "properties": {
                 "$os": system.hostOS,
                 "$browser": "NimCord",
                 "$device": "NimCord"
             }
         }
     }
+
+    if (shard.client.shardCount != -1):
+        result.add("shard", %*[shard.id, shard.client.shardCount])
 
 # For some reason this shows as an error in VSCode, but it compiles fine.
 #proc startConnection*(client: DiscordClient, shardCount: int = 1) {.async.}

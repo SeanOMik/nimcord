@@ -99,4 +99,4 @@ registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
             discard channel.sendMessage("", false, embed, @[file])
 )
 
-waitFor bot.startConnection(2)
+waitFor bot.startConnection()
