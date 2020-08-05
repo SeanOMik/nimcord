@@ -110,7 +110,7 @@ proc handleWebsocketPacket(shard: Shard) {.async.} =
     while true:
         var packet: tuple[opcode: Opcode, data: string]
 
-        packet = await shard.ws.readData();
+        packet = await shard.ws.readData()
         echo "[SHARD ", $shard.id, "] Received gateway payload: ", packet.data
 
         if packet.opcode == Opcode.Close:
@@ -120,7 +120,7 @@ proc handleWebsocketPacket(shard: Shard) {.async.} =
 
         # If we fail to parse the json just stop this loop
         try:
-            json = parseJson(packet.data);
+            json = parseJson(packet.data)
         except:
             echo "Failed to parse websocket payload: ", packet.data
             continue

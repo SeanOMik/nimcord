@@ -40,13 +40,13 @@ proc canLog(log: Log, sev: LogSeverity): bool =
 
     case sev
         of LogSeverity.logSevInfo:
-            return (log.flags and int(LoggerFlags.loggerFlagInfoSeverity)) == int(LoggerFlags.loggerFlagInfoSeverity);
+            return (log.flags and int(LoggerFlags.loggerFlagInfoSeverity)) == int(LoggerFlags.loggerFlagInfoSeverity)
         of LogSeverity.logSevWarn:
-            return (log.flags and int(LoggerFlags.loggerFlagWarnSeverity)) == int(LoggerFlags.loggerFlagWarnSeverity);
+            return (log.flags and int(LoggerFlags.loggerFlagWarnSeverity)) == int(LoggerFlags.loggerFlagWarnSeverity)
         of LogSeverity.logSevError:
-            return (log.flags and int(LoggerFlags.loggerFlagErrorSeverity)) == int(LoggerFlags.loggerFlagErrorSeverity);
+            return (log.flags and int(LoggerFlags.loggerFlagErrorSeverity)) == int(LoggerFlags.loggerFlagErrorSeverity)
         else:
-            return false;
+            return false
 
 proc severityToString(sev: LogSeverity): string =
     case sev
