@@ -25,7 +25,7 @@ proc newLog*(flags: int, filePath: string = ""): Log =
     var log = Log(flags: flags)
     if filePath.len > 0:
         log.logFile = newFileStream(filePath, fmWrite)
-        if (isNil(log.logFile)):
+        if isNil(log.logFile):
             raise newException(IOError, "Failed to open log file: " & filePath)
     
     return log
@@ -38,7 +38,7 @@ proc canLog(log: Log, sev: LogSeverity): bool =
     elif (log.flags and int(LoggerFlags.loggerFlagDebugSeverity)) == int(LoggerFlags.loggerFlagDebugSeverity):
         return true
 
-    case (sev) 
+    case sev
         of LogSeverity.logSevInfo:
             return (log.flags and int(LoggerFlags.loggerFlagInfoSeverity)) == int(LoggerFlags.loggerFlagInfoSeverity);
         of LogSeverity.logSevWarn:
@@ -49,7 +49,7 @@ proc canLog(log: Log, sev: LogSeverity): bool =
             return false;
 
 proc severityToString(sev: LogSeverity): string =
-    case (sev) 
+    case sev
         of LogSeverity.logSevInfo:
             return "INFO"
         of LogSeverity.logSevWarn:
@@ -61,7 +61,7 @@ proc severityToString(sev: LogSeverity): string =
 
 #TODO: Remove colors from file.
 template autoLog(log: Log, sev: LogSeverity, args: varargs[untyped]) =
-    if (log.canLog(sev)):
+    if log.canLog(sev):
         let timeFormated = getTime().format("[HH:mm:ss]")
         let sevStr = "[" & severityToString(sev) & "]"
 
@@ -69,7 +69,7 @@ template autoLog(log: Log, sev: LogSeverity, args: varargs[untyped]) =
 
         terminal.styledEcho(logHeader, args)
 
-        if (log.logFile != nil):
+        if log.logFile != nil:
             log.logFile.writeLine(logHeader, args)
 
 template debug*(log: Log, args: varargs[untyped]) =
@@ -90,6 +90,6 @@ template info*(log: Log, args: varargs[untyped]) =
 
 proc closeLog*(log: Log) =
     ## Close log file if it was ever open.
-    if (log.logFile != nil):
+    if log.logFile != nil:
         log.info(fgYellow, "Closing log...")
         log.logFile.close()

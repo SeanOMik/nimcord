@@ -8,9 +8,9 @@ type Role* = ref object of DiscordObject
     permissions*: Permissions
     managed*: bool
     mentionable*: bool
-    guildID*: snowflake
+    guildID*: Snowflake
 
-proc newRole*(json: JsonNode, guild: snowflake): Role =
+proc newRole*(json: JsonNode, guild: Snowflake): Role =
     ## Parses role from json.
     result = Role(
         id: getIDFromJson(json["id"].getStr()),
@@ -38,19 +38,19 @@ proc modifyGuildRole*(role: var Role, name: Option[string] = none(string), permi
 
     var jsonBody: JsonNode
 
-    if (name.isSome):
+    if name.isSome:
         jsonBody.add("name", %name)
 
-    if (permissions.isSome):
+    if permissions.isSome:
         jsonBody.add("permissions", %permissions.get().allowPerms)
 
-    if (color.isSome):
+    if color.isSome:
         jsonBody.add("color", %color)
 
-    if (hoist.isSome):
+    if hoist.isSome:
         jsonBody.add("hoist", %hoist)
 
-    if (mentionable.isSome):
+    if mentionable.isSome:
         jsonBody.add("mentionable", %mentionable)
 
     result = newRole(sendRequest(endpoint(fmt("/guilds/{role.guildID}/roles/{role.id}")), HttpPatch,

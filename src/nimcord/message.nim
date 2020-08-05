@@ -1,4 +1,4 @@
-import json, discordobject, nimcordutils, user, member, httpcore, asyncdispatch, emoji, options, embed, role, emoji
+import json, discordobject, nimcordutils, user, member, httpcore, asyncdispatch, emoji, options, embed, emoji
 
 type 
     MessageType* = enum
@@ -35,9 +35,9 @@ type
         name*: string
 
     MessageReference* = ref object
-        messageID*: snowflake
-        channelID*: snowflake
-        guildID*: snowflake
+        messageID*: Snowflake
+        channelID*: Snowflake
+        guildID*: Snowflake
 
     MessageFlags* = enum
         msgFlagCrossposted = 0,
@@ -53,8 +53,8 @@ type
 
     ChannelMention* = ref object
         ## Represents a channel mention inside of a message.
-        channelID*: snowflake
-        guildID*: snowflake
+        channelID*: Snowflake
+        guildID*: Snowflake
         channelType*: int
         name*: string
 
@@ -68,8 +68,8 @@ type
         width*: int
 
     Message* = ref object of DiscordObject
-        channelID*: snowflake
-        guildID*: snowflake
+        channelID*: Snowflake
+        guildID*: Snowflake
         author*: User
         member*: GuildMember
         content*: string
@@ -78,13 +78,13 @@ type
         tts*: bool
         mentionEveryone*: bool
         mentions*: seq[User]
-        mentionRoles*: seq[snowflake]
+        mentionRoles*: seq[Snowflake]
         mentionChannels*: seq[ChannelMention]
         attachments*: seq[MessageAttachment]
         embeds*: seq[Embed]
         reactions*: seq[Reaction]
         pinned*: bool
-        webhookID*: snowflake
+        webhookID*: Snowflake
         `type`*: MessageType
         activity*: MessageActivity
         application*: MessageApplication
@@ -107,19 +107,19 @@ proc newMessage*(messageJson: JsonNode): Message =
         flags: messageJson{"flags"}.getInt()
     )
 
-    if (messageJson.contains("author")):
+    if messageJson.contains("author"):
         msg.author = newUser(messageJson["author"])
-    if (messageJson.contains("member")):
+    if messageJson.contains("member"):
         msg.member = newGuildMember(messageJson["member"], msg.guildID)
 
-    if (messageJson.contains("mentions")):
+    if messageJson.contains("mentions"):
         for userJson in messageJson["mentions"]:
             msg.mentions.add(newUser(userJson))
         
     for role in messageJson["mention_roles"]:
         msg.mentionRoles.add(getIDFromJson(role.getStr()))
 
-    if (messageJson.contains("mention_channels")):
+    if messageJson.contains("mention_channels"):
         for channel in messageJson["mention_channels"]:
             msg.mentionChannels.add(ChannelMention(
                 channelID: getIDFromJson(channel["id"].getStr()),
@@ -142,7 +142,7 @@ proc newMessage*(messageJson: JsonNode): Message =
     for embed in messageJson["embeds"]:
         msg.embeds.add(Embed(embedJson: embed))
 
-    if (messageJson.contains("reactions")):
+    if messageJson.contains("reactions"):
         for reaction in messageJson["reactions"]:
             msg.reactions.add(Reaction(
                 count: uint(reaction["count"].getInt()),
@@ -150,10 +150,10 @@ proc newMessage*(messageJson: JsonNode): Message =
                 emoji: newEmoji(reaction["emoji"], msg.guildID)
             ))
 
-    if (messageJson.contains("activity")):
+    if messageJson.contains("activity"):
         msg.activity = MessageActivity(`type`: MessageActivityType(messageJson["activity"]["type"].getInt()), 
             partyID: messageJson["activity"]["party_id"].getStr())
-    if (messageJson.contains("application")):
+    if messageJson.contains("application"):
         msg.application = MessageApplication(
             id: getIDFromJson(messageJson["application"]["id"].getStr()),
             coverImage: messageJson["application"]{"cover_image"}.getStr(),
@@ -161,7 +161,7 @@ proc newMessage*(messageJson: JsonNode): Message =
             icon: messageJson["application"]{"icon"}.getStr(),
             name: messageJson["application"]["name"].getStr()
         )
-    if (messageJson.contains("message_reference")):
+    if messageJson.contains("message_reference"):
         msg.messageReference = MessageReference(
             messageID: getIDFromJson(messageJson["message_reference"]{"message_id"}.getStr()),
             channelID: getIDFromJson(messageJson["message_reference"]["channel_id"].getStr()),
@@ -212,8 +212,8 @@ type ReactantsGetRequest* = object
     ## Use this type to get a messages's reactants by setting 
     ## some of the fields.
     ## You can only set one of `before` and `after`.
-    before*: Option[snowflake]
-    after*: Option[snowflake]
+    before*: Option[Snowflake]
+    after*: Option[Snowflake]
     limit*: Option[int]
 
 proc getReactants*(message: Message, emoji: Emoji, request: ReactantsGetRequest): seq[User] =
@@ -224,17 +224,17 @@ proc getReactants*(message: Message, emoji: Emoji, request: ReactantsGetRequest)
 
     # Raise some exceptions to make sure the user doesn't
     # try to set more than one of these fields
-    if (request.before.isSome):
+    if request.before.isSome:
         url = url & "before=" & $request.before.get()
 
-    if (request.after.isSome):
-        if (request.before.isSome):
+    if request.after.isSome:
+        if request.before.isSome:
             raise newException(Defect, "You cannot get before and after a message! Choose one...")
         url = url & "after=" & $request.after.get()
 
-    if (request.limit.isSome):
+    if request.limit.isSome:
         # Add the `&` for the url if something else is set.
-        if (request.before.isSome or request.after.isSome):
+        if request.before.isSome or request.after.isSome:
             url = url & "&"
         
         url = url & "limit=" & $request.limit.get()
@@ -276,7 +276,7 @@ proc editMessage*(message: Message, content: string, embed: Embed = nil): Future
     ## Edit a previously sent message.
     var jsonBody = %*{"content": content}
 
-    if (not embed.isNil()):
+    if embed != nil:
         jsonBody.add("embed", embed.embedJson)
 
     return newMessage(sendRequest(endpoint("/channels/" & $message.channelID & "/messages/" & $message.id),

@@ -1,5 +1,5 @@
 import parseutils, json, httpClient, strformat, tables, times, asyncdispatch
-from discordobject import snowflake
+from discordobject import Snowflake
 
 proc getIDFromJson*(str: string): uint64 =
     var num: uint64
@@ -17,10 +17,11 @@ proc endpoint*(url: string): string =
 var globalToken*: string
 
 proc defaultHeaders*(added: HttpHeaders = newHttpHeaders()): HttpHeaders = 
-    added.add("Authorization", fmt("Bot {globalToken}"))
+    # added.add("Authorization", fmt("Bot {globalToken}"))
+    added.add("Authorization", fmt("{globalToken}"))
     added.add("User-Agent", "NimCord (https://github.com/SeanOMik/nimcord, v0.0.0)")
     added.add("X-RateLimit-Precision", "millisecond")
-    return added;
+    return added
 
 type 
     RateLimitBucketType* = enum
@@ -37,16 +38,16 @@ proc newRateLimit(lmt: int = 500, remLmnt: int = 500, ratelmtReset: float = 0): 
     return RateLimit(limit: lmt, remainingLimit: remLmnt, ratelimitReset: ratelmtReset)
 
 # Rate limit buckets
-let channelRatelimitBucket = newTable[snowflake, RateLimit]()
-let guildRatelimitBucket = newTable[snowflake, RateLimit]()
-let webhookRatelimitBucket = newTable[snowflake, RateLimit]()
+let channelRatelimitBucket = newTable[Snowflake, RateLimit]()
+let guildRatelimitBucket = newTable[Snowflake, RateLimit]()
+let webhookRatelimitBucket = newTable[Snowflake, RateLimit]()
 var globalRateLimit: RateLimit = newRateLimit()
 
-proc handleRateLimits*(headers: HttpHeaders, objectID: snowflake, bucketType: RateLimitBucketType) =
+proc handleRateLimits*(headers: HttpHeaders, objectID: Snowflake, bucketType: RateLimitBucketType) =
     var obj: RateLimit
-    if (headers.hasKey("x-ratelimit-global")):
+    if headers.hasKey("x-ratelimit-global"):
         obj = globalRateLimit
-    elif (headers.hasKey("x-ratelimit-limit")):
+    elif headers.hasKey("x-ratelimit-limit"):
         case bucketType:
             of RateLimitBucketType.channel:
                 obj = channelRatelimitBucket[objectID]
@@ -68,33 +69,33 @@ proc handleRateLimits*(headers: HttpHeaders, objectID: snowflake, bucketType: Ra
     discard parseFloat(headers["x-ratelimit-reset"], obj.ratelimitReset)
 
 
-proc handleResponse*(response: Response, objectID: snowflake, bucketType: RateLimitBucketType): JsonNode =
+proc handleResponse*(response: Response, objectID: Snowflake, bucketType: RateLimitBucketType): JsonNode =
     echo fmt("Received requested payload: {response.body}")
 
     handleRateLimits(response.headers, objectID, bucketType)
 
     return parseJson(response.body())
 
-proc waitForRateLimits*(objectID: snowflake, bucketType: RateLimitBucketType) =
+proc waitForRateLimits*(objectID: Snowflake, bucketType: RateLimitBucketType) =
     var rlmt: RateLimit
-    if (globalRateLimit.remainingLimit == 0):
+    if globalRateLimit.remainingLimit == 0:
         rlmt = globalRateLimit
     else:
         case bucketType:
             of RateLimitBucketType.channel:
-                if (channelRatelimitBucket.hasKey(objectID)):
+                if channelRatelimitBucket.hasKey(objectID):
                     rlmt = channelRatelimitBucket[objectID]
                 else:
                     channelRatelimitBucket.add(objectID, newRateLimit())
                     rlmt = channelRatelimitBucket[objectID]
             of RateLimitBucketType.guild:
-                if (guildRatelimitBucket.hasKey(objectID)):
+                if guildRatelimitBucket.hasKey(objectID):
                     rlmt = guildRatelimitBucket[objectID]
                 else:
                     guildRatelimitBucket.add(objectID, newRateLimit())
                     rlmt = guildRatelimitBucket[objectID]
             of RateLimitBucketType.webhook:
-                if (webhookRatelimitBucket.hasKey(objectID)):
+                if webhookRatelimitBucket.hasKey(objectID):
                     rlmt = webhookRatelimitBucket[objectID]
                 else:
                     webhookRatelimitBucket.add(objectID, newRateLimit())
@@ -102,21 +103,21 @@ proc waitForRateLimits*(objectID: snowflake, bucketType: RateLimitBucketType) =
             of RateLimitBucketType.global:
                 rlmt = globalRateLimit
     
-    if (rlmt != nil and rlmt.remainingLimit == 0):
+    if rlmt != nil and rlmt.remainingLimit == 0:
         let millisecondTime: float = rlmt.ratelimitReset * 1000 - epochTime() * 1000
 
-        if (millisecondTime > 0):
+        if millisecondTime > 0:
             echo fmt("Rate limit wait time: {millisecondTime} miliseconds")
             waitFor sleepAsync(millisecondTime)
 
-proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders, objectID: snowflake = 0, 
+proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders, objectID: Snowflake = 0, 
     bucketType: RateLimitBucketType = global, jsonBody: JsonNode = nil): JsonNode =    
     var client = newHttpClient()
     # Add headers
     client.headers = headers
 
     var strPayload: string
-    if (jsonBody == nil):
+    if jsonBody == nil:
         strPayload = ""
     else:
         strPayload = $jsonBody

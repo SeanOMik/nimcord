@@ -53,9 +53,9 @@ type
 
     VoiceState* = ref object
         ## Used to represent a user's voice connection status
-        guildID*: snowflake
-        channelID*: snowflake
-        userID*: snowflake
+        guildID*: Snowflake
+        channelID*: Snowflake
+        userID*: Snowflake
         member*: GuildMember
         sessionID*: string
         deaf*: bool
@@ -72,10 +72,10 @@ type
         splash*: string
         discoverySplash*: string
         owner*: bool
-        ownerID: snowflake
+        ownerID: Snowflake
         permissions*: Permissions
         region*: string
-        afkChannelID*: snowflake
+        afkChannelID*: Snowflake
         afkTimeout*: int
         verificationLevel*: VerificationLevel
         defaultMessageNotifications*: MessageNotificationsLevel
@@ -84,12 +84,12 @@ type
         emojis*: seq[Emoji]
         features*: seq[string]
         mfaLevel*: MFALevel
-        applicationID*: snowflake
+        applicationID*: Snowflake
         widgetEnabled*: bool
-        widgetChannelID*: snowflake
-        systemChannelID*: snowflake
+        widgetChannelID*: Snowflake
+        systemChannelID*: Snowflake
         systemChannelFlags*: int
-        rulesChannelID*: snowflake
+        rulesChannelID*: Snowflake
         joinedAt*: string
         large*: bool
         unavailable*: bool
@@ -106,7 +106,7 @@ type
         premiumTier*: PremiumTier
         premiumSubscriptionCount*: int
         preferredLocale*: string
-        publicUpdatesChannelID*: snowflake
+        publicUpdatesChannelID*: Snowflake
         maxVideoChannelUsers*: int
         approximateMemberCount*: int
         approximatePresenceCount*: int
@@ -150,7 +150,7 @@ type
         `type`*: string ## Integration type (twitch, youtube, etc)
         enabled*: bool
         syncing*: bool
-        roleID*: snowflake
+        roleID*: Snowflake
         enableEmoticons*: bool
         expireBehavior*: IntegrationExpireBehavior
         expireGracePeriod*: int
@@ -160,7 +160,7 @@ type
 
     GuildWidget* = ref object
         enabled*: bool
-        channelID*: snowflake
+        channelID*: Snowflake
 
     GuildWidgetStyle* = enum
         guildWidgetStyleShield = "shield",
@@ -199,9 +199,9 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
     )
 
     # Parse all non guaranteed fields
-    if (json.contains("owner")):
+    if json.contains("owner"):
         g.owner = json["owner"].getBool()
-    if (json.contains("permissions")):
+    if json.contains("permissions"):
         g.permissions = newPermissions(json["permissions"])
     for role in json["roles"]:
         g.roles.add(newRole(role, g.id))
@@ -209,17 +209,17 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
         g.emojis.add(newEmoji(emoji, g.id))
     for feature in json["features"]:
         g.features.add(feature.getStr())
-    if (json.contains("widget_enabled")):
+    if json.contains("widget_enabled"):
         g.widgetEnabled = json["widget_enabled"].getBool()
-    if (json.contains("widget_channel_id")):
+    if json.contains("widget_channel_id"):
         g.widgetChannelID = getIDFromJson(json["widget_channel_id"].getStr())
-    if (json.contains("large")):
+    if json.contains("large"):
         g.large = json["large"].getBool()
-    if (json.contains("unavailable")):
+    if json.contains("unavailable"):
         g.unavailable = json["unavailable"].getBool()
-    if (json.contains("member_count")):
+    if json.contains("member_count"):
         g.memberCount = json["member_count"].getInt()
-    if (json.contains("voice_states")):
+    if json.contains("voice_states"):
         for voicestate in json["voice_states"]:
             var state = VoiceState(
                 guildID: g.id,
@@ -234,47 +234,47 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
                 suppress: voicestate["suppress"].getBool()
             )
 
-            if (voicestate.contains("member")):
+            if voicestate.contains("member"):
                 state.member = newGuildMember(voicestate["member"], g.id)
 
             g.voiceStates.add(state)
-    if (json.contains("members")):
+    if json.contains("members"):
         for member in json["members"]:
             g.members.insert(newGuildMember(member, g.id))
-    if (json.contains("channels")):
+    if json.contains("channels"):
         for channel in json["channels"]:
             g.channels.insert(newChannel(channel))
-    if (json.contains("presences")):
+    if json.contains("presences"):
         # Parse all presences
-        var tmpPresences = initTable[snowflake, Presence]()
+        var tmpPresences = initTable[Snowflake, Presence]()
         for presence in json["presences"]:
             tmpPresences.add(getIDFromJson(presence["user"]["id"].getStr()), newPresence(presence))
 
         # Check if the `tmpPresences` variable has a presence for the member,
         # if it does, then update the member to include its presence.
         for member in g.members:
-            if (tmpPresences.hasKey(member.user.id)):
+            if tmpPresences.hasKey(member.user.id):
                 member.presence = tmpPresences[member.user.id]
 
-    if (json.contains("max_presences")):
+    if json.contains("max_presences"):
         g.maxPresences = json["max_presences"].getInt()
-    if (json.contains("max_members")):
+    if json.contains("max_members"):
         g.maxMembers = json["max_members"].getInt()
-    if (json.contains("premium_subscription_count")):
+    if json.contains("premium_subscription_count"):
         g.premiumSubscriptionCount = json["premium_subscription_count"].getInt()
-    if (json.contains("max_video_channel_users")):
+    if json.contains("max_video_channel_users"):
         g.maxVideoChannelUsers = json["max_video_channel_users"].getInt()
-    if (json.contains("approximate_member_count")):
+    if json.contains("approximate_member_count"):
         g.approximateMemberCount = json["approximate_member_count"].getInt()
-    if (json.contains("approximate_presence_count")):
+    if json.contains("approximate_presence_count"):
         g.approximatePresenceCount = json["approximate_presence_count"].getInt()
 
     return g
 
 proc createGuild*(name: string, region: Option[string], icon: Option[string], verificationLevel: Option[VerificationLevel],
     defaultMessageNotifications: Option[MessageNotificationsLevel], explicitContentFilter: Option[ExplicitContentFilterLevel],
-    roles: Option[seq[Role]], channels: Option[seq[Channel]], afkChannelID: Option[snowflake], afkTimeout: Option[int],
-    systemChannelID: Option[snowflake]): Guild =
+    roles: Option[seq[Role]], channels: Option[seq[Channel]], afkChannelID: Option[Snowflake], afkTimeout: Option[int],
+    systemChannelID: Option[Snowflake]): Guild =
     ## Create a new guild.
     ## 
     ## Some restraints/notes for this endpoint:
@@ -296,17 +296,17 @@ proc createGuild*(name: string, region: Option[string], icon: Option[string], ve
 
     var json = %* {"name": name}
 
-    if (region.isSome):
+    if region.isSome:
         json.add("region", %region.get())
-    if (icon.isSome):
+    if icon.isSome:
         json.add("icon", %icon.get())
-    if (verificationLevel.isSome):
+    if verificationLevel.isSome:
         json.add("verification_level", %ord(verificationLevel.get()))
-    if (defaultMessageNotifications.isSome):
+    if defaultMessageNotifications.isSome:
         json.add("default_message_notifications", %ord(defaultMessageNotifications.get()))
-    if (explicitContentFilter.isSome):
+    if explicitContentFilter.isSome:
         json.add("explicit_content_filter", %ord(explicitContentFilter.get()))
-    if (roles.isSome):
+    if roles.isSome:
         #json.add("verification_level", %ord(verificationLevel.get()))
         var rolesJson = parseJson("[]")
         for role in roles.get():
@@ -322,7 +322,7 @@ proc createGuild*(name: string, region: Option[string], icon: Option[string], ve
             rolesJson.add(roleJson)
 
         json.add("channels", rolesJson)
-    if (channels.isSome):
+    if channels.isSome:
         var channelsJson = parseJson("[]")
         for channel in channels.get():
             var channelJson = %*{
@@ -336,7 +336,7 @@ proc createGuild*(name: string, region: Option[string], icon: Option[string], ve
                 "parent_id": channel.parentID
             }
 
-            if (channel.permissionOverwrites.len != 0):
+            if channel.permissionOverwrites.len != 0:
                 channelsJson.add("permission_overwrites", parseJson("[]"))
                 for permOverwrite in channel.permissionOverwrites:
                     channelsJson["permission_overwrites"].add(permOverwrite.permissionsToJson())
@@ -344,11 +344,11 @@ proc createGuild*(name: string, region: Option[string], icon: Option[string], ve
             channelsJson.add(channelJson)
 
         json.add("channels", channelsJson)
-    if (afkChannelID.isSome):
+    if afkChannelID.isSome:
         json.add("afk_channel_id", %ord(afkChannelID.get()))
-    if (afkTimeout.isSome):
+    if afkTimeout.isSome:
         json.add("afk_timeout", %ord(afkTimeout.get()))
-    if (systemChannelID.isSome):
+    if systemChannelID.isSome:
         json.add("system_channel_id", %ord(systemChannelID.get()))
 
     return newGuild(sendRequest(endpoint("/guilds"), HttpPost, 
@@ -386,15 +386,15 @@ type GuildModify* = ref object
     verificationLevel*: Option[VerificationLevel]
     defaultMessageNotifications*: Option[MessageNotificationsLevel]
     explicitContentFilter*: Option[ExplicitContentFilterLevel]
-    afkChannelID*: Option[snowflake]
+    afkChannelID*: Option[Snowflake]
     afkTimeout*: Option[int]
     icon*: Option[Image]
-    ownerID*: Option[snowflake]
+    ownerID*: Option[Snowflake]
     splash*: Option[Image]
     banner*: Option[Image]
-    systemChannelID*: Option[snowflake]
-    rulesChannelID*: Option[snowflake]
-    publicUpdatesChannelID*: Option[snowflake]
+    systemChannelID*: Option[Snowflake]
+    rulesChannelID*: Option[Snowflake]
+    publicUpdatesChannelID*: Option[Snowflake]
     preferredLocale*: Option[string]
 
 proc modifyGuild*(guild: Guild, modify: GuildModify): Future[Guild] {.async.} =
@@ -408,49 +408,49 @@ proc modifyGuild*(guild: Guild, modify: GuildModify): Future[Guild] {.async.} =
     
     var modifyPayload = %*{}
 
-    if (modify.name.isSome):
+    if modify.name.isSome:
         modifyPayload.add("name", %modify.name.get())
     
-    if (modify.region.isSome):
+    if modify.region.isSome:
         modifyPayload.add("region", %modify.region.get())
     
-    if (modify.verificationLevel.isSome):
+    if modify.verificationLevel.isSome:
         modifyPayload.add("verification_level", %modify.verificationLevel.get())
 
-    if (modify.defaultMessageNotifications.isSome):
+    if modify.defaultMessageNotifications.isSome:
         modifyPayload.add("default_message_notifications", %modify.defaultMessageNotifications.get())
 
-    if (modify.explicitContentFilter.isSome):
+    if modify.explicitContentFilter.isSome:
         modifyPayload.add("explicit_content_filter", %modify.explicitContentFilter.get())
 
-    if (modify.afkChannelID.isSome):
+    if modify.afkChannelID.isSome:
         modifyPayload.add("afk_channel_id", %modify.afkChannelID.get())
 
-    if (modify.afkTimeout.isSome):
+    if modify.afkTimeout.isSome:
         modifyPayload.add("afk_timeout", %modify.afkTimeout.get())
 
-    if (modify.icon.isSome):
+    if modify.icon.isSome:
         modifyPayload.add("icon", %modify.icon.get().imageToDataURI())
 
-    if (modify.ownerID.isSome):
+    if modify.ownerID.isSome:
         modifyPayload.add("owner_id", %modify.ownerID.get())
 
-    if (modify.splash.isSome):
+    if modify.splash.isSome:
         modifyPayload.add("splash", %modify.splash.get().imageToDataURI())
 
-    if (modify.banner.isSome):
+    if modify.banner.isSome:
         modifyPayload.add("banner", %modify.banner.get().imageToDataURI())
 
-    if (modify.systemChannelID.isSome):
+    if modify.systemChannelID.isSome:
         modifyPayload.add("system_channel_id", %modify.systemChannelID.get())
 
-    if (modify.rulesChannelID.isSome):
+    if modify.rulesChannelID.isSome:
         modifyPayload.add("rules_channel_id", %modify.rulesChannelID.get())
 
-    if (modify.publicUpdatesChannelID.isSome):
+    if modify.publicUpdatesChannelID.isSome:
         modifyPayload.add("public_updates_channel_id", %modify.publicUpdatesChannelID.get())
     
-    if (modify.preferredLocale.isSome):
+    if modify.preferredLocale.isSome:
         modifyPayload.add("preferred_locale", %modify.preferredLocale.get())
 
     return newGuild(sendRequest(endpoint("/guilds/" & $guild.id), HttpPatch, 
@@ -488,33 +488,33 @@ proc createGuildChannel*(guild: var Guild, create: ChannelFields): Future[Channe
     var createPayload = %*{}
 
     # Make sure that the name is supplied since its required for this endpoint.
-    if (create.name.isSome):
+    if create.name.isSome:
         createPayload.add("name", %create.name.get())
     else:
         raise newException(Defect, "You must have a channel name when creating it!")
 
-    if (create.`type`.isSome):
+    if create.`type`.isSome:
         createPayload.add("type", %create.`type`.get())
 
-    if (create.position.isSome):
+    if create.position.isSome:
         createPayload.add("position", %create.position.get())
 
-    if (create.topic.isSome):
+    if create.topic.isSome:
         createPayload.add("topic", %create.topic.get())
 
-    if (create.nsfw.isSome):
+    if create.nsfw.isSome:
         createPayload.add("nsfw", %create.nsfw.get())
 
-    if (create.rateLimitPerUser.isSome):
+    if create.rateLimitPerUser.isSome:
         createPayload.add("rate_limit_per_user", %create.rateLimitPerUser.get())
 
-    if (create.bitrate.isSome):
+    if create.bitrate.isSome:
         createPayload.add("bitrate", %create.bitrate.get())
 
-    if (create.userLimit.isSome):
+    if create.userLimit.isSome:
         createPayload.add("user_limit", %create.userLimit.get())
 
-    if (create.permissionOverwrites.isSome):
+    if create.permissionOverwrites.isSome:
         var permOverwrites = parseJson("[]")
         for perm in create.permissionOverwrites.get():
             permOverwrites.add(perm.permissionsToJson())
@@ -536,7 +536,7 @@ proc modifyGuildChannelPositions*(guild: var Guild, channels: seq[Channel]) {.as
         defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), 
         guild.id, RateLimitBucketType.guild, jsonBody)
 
-proc getGuildMember*(guild: var Guild, memberID: snowflake): GuildMember =
+proc getGuildMember*(guild: var Guild, memberID: Snowflake): GuildMember =
     ## Get a guild member.
     ## This first checks `guild.members`, but if it doesn't exist there,
     ## it will be requested from Discord's REST API.
@@ -544,7 +544,7 @@ proc getGuildMember*(guild: var Guild, memberID: snowflake): GuildMember =
     ## If we end up requesting one, it will add it to `guild.members`
     
     for member in guild.members:
-        if (member.id == memberID):
+        if member.id == memberID:
             return member
 
     result = newGuildMember(sendRequest(endpoint(fmt("/guilds/{guild.id}/members/{memberID}")), 
@@ -576,7 +576,7 @@ proc getGuildBans*(guild: Guild): seq[GuildBan] =
             user: newUser(json["user"])
         ))
 
-proc getGuildBan*(guild: Guild, userID: snowflake): GuildBan =
+proc getGuildBan*(guild: Guild, userID: Snowflake): GuildBan =
     ## Returns a ban object for the given user or nil if the ban cannot be found. 
     ## Requires the BAN_MEMBERS permission.
     let response = sendRequest(endpoint(fmt("/guilds/{guild.id}/bans{userID}")), HttpGet,
@@ -590,22 +590,22 @@ proc getGuildBan*(guild: Guild, userID: snowflake): GuildBan =
     else:
         return nil
 
-proc banGuildMember*(guild: Guild, userID: snowflake, reason: Option[string] = none(string), deleteMessageDays: Option[int] = none(int)) {.async.} =
+proc banGuildMember*(guild: Guild, userID: Snowflake, reason: Option[string] = none(string), deleteMessageDays: Option[int] = none(int)) {.async.} =
     ## Create a guild ban, and optionally delete previous messages sent by the
     ## banned user. Requires the BAN_MEMBERS permission.
     
     var jsonBody: JsonNode
 
-    if (reason.isSome):
+    if reason.isSome:
         jsonBody.add("reason", %reason.get())
-    if (deleteMessageDays.isSome):
+    if deleteMessageDays.isSome:
         jsonBody.add("deleteMessageDays", %deleteMessageDays.get())
 
     discard sendRequest(endpoint(fmt("/guilds/{guild.id}/bans/{userID}")), HttpPut,
         defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})),
         guild.id, RateLimitBucketType.guild, jsonBody)
 
-proc unbanGuildMember*(guild: Guild, userID: snowflake) {.async.} =
+proc unbanGuildMember*(guild: Guild, userID: Snowflake) {.async.} =
     ## Remove the ban for a user. Requires the BAN_MEMBERS permissions. 
     discard sendRequest(endpoint(fmt("/guilds/{guild.id}/bans/{userID}")), HttpDelete,
         defaultHeaders(), guild.id, RateLimitBucketType.guild)
@@ -634,19 +634,19 @@ proc createGuildRole*(guild: Guild, name: Option[string] = none(string), permiss
     
     var jsonBody: JsonNode
 
-    if (name.isSome):
+    if name.isSome:
         jsonBody.add("name", %name)
 
-    if (permissions.isSome):
+    if permissions.isSome:
         jsonBody.add("permissions", %permissions.get().allowPerms)
 
-    if (color.isSome):
+    if color.isSome:
         jsonBody.add("color", %color)
 
-    if (hoist.isSome):
+    if hoist.isSome:
         jsonBody.add("hoist", %hoist)
 
-    if (mentionable.isSome):
+    if mentionable.isSome:
         jsonBody.add("mentionable", %mentionable)
 
     return newRole(sendRequest(endpoint(fmt("/guilds/{guild.id}/roles")), HttpPost,
@@ -665,7 +665,7 @@ proc modifyGuildRolePositions*(guild: var Guild, roles: seq[Role]) {.async.} =
         defaultHeaders(newHttpHeaders({"Content-Type": "application/json"})), 
         guild.id, RateLimitBucketType.guild, jsonBody)
 
-proc getGuildPruneCount*(guild: Guild, days: int = 7, includedRoles: seq[snowflake] = @[]): int =
+proc getGuildPruneCount*(guild: Guild, days: int = 7, includedRoles: seq[Snowflake]): int =
     ## Returns the number of members that would be removed in a prune operation. 
     ## Requires the `KICK_MEMBERS` permission.
     ## 
@@ -687,7 +687,7 @@ proc getGuildPruneCount*(guild: Guild, days: int = 7, includedRoles: seq[snowfla
     let jsonBody = sendRequest(url, HttpGet, defaultHeaders(), guild.id, RateLimitBucketType.guild)
     return jsonBody["pruned"].getInt()
 
-proc beginGuildPrune*(guild: Guild, days: int = 7, computePruneCount: bool = false, includedRoles: seq[snowflake] = @[]): Future[Option[int]] {.async.} =
+proc beginGuildPrune*(guild: Guild, days: int = 7, computePruneCount: bool = false, includedRoles: seq[Snowflake]): Future[Option[int]] {.async.} =
     ## Returns the number of members that would be removed in a prune operation. 
     ## Requires the `KICK_MEMBERS` permission.
     ## 
@@ -792,15 +792,15 @@ proc modifyGuildIntegration*(guild: Guild, integration: var Integration,
     ##   discard integration.modifyGuildIntegration(enable_emoticons = true)
     var modifyPayload = %*{}
 
-    if (expireBehavior.isSome):
+    if expireBehavior.isSome:
         modifyPayload.add("expire_behavior", %expireBehavior.get())
         integration.expireBehavior = (expireBehavior.get())
 
-    if (expireGracePeriod.isSome):
+    if expireGracePeriod.isSome:
         modifyPayload.add("expire_grace_period", %expireGracePeriod.get())
         integration.expireGracePeriod = expireGracePeriod.get()
 
-    if (enableEmoticons.isSome):
+    if enableEmoticons.isSome:
         modifyPayload.add("enable_emoticons", %enableEmoticons.get())
         integration.enableEmoticons = enableEmoticons.get()
 
@@ -827,7 +827,7 @@ proc getGuildWidget*(guild: Guild): GuildWidget =
     return GuildWidget(enabled: jsonBody["enabled"].getBool(), 
         channelID: getIDFromJson(jsonBody{"channel_id"}.getStr()))
 
-proc modifyGuildWidget*(guild: Guild, widget: var GuildWidget, enabled: bool, channelID: snowflake) {.async.} =
+proc modifyGuildWidget*(guild: Guild, widget: var GuildWidget, enabled: bool, channelID: Snowflake) {.async.} =
     ## Modify a guild widget object for the guild. Requires the `MANAGE_GUILD` permission.
     widget.enabled = enabled
     widget.channelID = channelID
@@ -863,16 +863,16 @@ proc getGuildWidgetImage*(guild: Guild, style: GuildWidgetStyle): string =
     ##   and a "JOIN MY SERVER" button at the bottom. [Example](https://discord.com/api/guilds/81384788765712384/widget.png?style=banner4)
     result = fmt("guilds/{guild.id}/widget.png")
 
-    case (style)
-        of (GuildWidgetStyle.guildWidgetStyleShield):
+    case style
+        of GuildWidgetStyle.guildWidgetStyleShield:
             result &= "?style=shield"
-        of (GuildWidgetStyle.guildWidgetStyleBanner1):
+        of GuildWidgetStyle.guildWidgetStyleBanner1:
             result &= "?style=banner1"
-        of (GuildWidgetStyle.guildWidgetStyleBanner2):
+        of GuildWidgetStyle.guildWidgetStyleBanner2:
             result &= "?style=banner2"
-        of (GuildWidgetStyle.guildWidgetStyleBanner3):
+        of GuildWidgetStyle.guildWidgetStyleBanner3:
             result &= "?style=banner3"
-        of (GuildWidgetStyle.guildWidgetStyleBanner4):
+        of GuildWidgetStyle.guildWidgetStyleBanner4:
             result &= "?style=banner4"
 
 proc requestEmojis*(guild: Guild): seq[Emoji] =
@@ -887,7 +887,7 @@ proc requestEmojis*(guild: Guild): seq[Emoji] =
         result.add(newEmoji(emoji, guild.id))
     guild.emojis = result
 
-proc getEmoji*(guild: Guild, emojiID: snowflake): Emoji =
+proc getEmoji*(guild: Guild, emojiID: Snowflake): Emoji =
     ## Returns a guild's emoji with `emojiID`.
     ## If the emoji isn't found in `guild.emojis` then it will request on
     ## from the Discord REST API.
@@ -898,7 +898,7 @@ proc getEmoji*(guild: Guild, emojiID: snowflake): Emoji =
     return newEmoji(sendRequest(endpoint("/guilds/{guild.id}/emojis/{emojiID}"), HttpGet,
         defaultHeaders(), guild.id, RateLimitBucketType.guild), guild.id)
 
-proc createEmoji*(guild: Guild, name: string, image: Image, roles: seq[snowflake] = @[]): Future[Emoji] {.async.} =
+proc createEmoji*(guild: Guild, name: string, image: Image, roles: seq[Snowflake]): Future[Emoji] {.async.} =
     ## Create a new emoji for the guild. Requires the `MANAGE_EMOJIS` permission.
     var jsonBody = %* {
         "name": name,
@@ -914,5 +914,5 @@ proc createEmoji*(guild: Guild, name: string, image: Image, roles: seq[snowflake
 proc getGuildMemberRoles*(guild: Guild, member: GuildMember): seq[Role] =
     ## Get the role objects for a member's roles.
     for role in guild.roles:
-        if (member.roles.contains(role.id)):
+        if member.roles.contains(role.id):
             result.add(role)

@@ -1,6 +1,6 @@
 import eventhandler, json, tables, message, emoji, user, member, role
 import guild, channel, nimcordutils, httpClient, strformat, cache
-import sequtils, asyncdispatch, clientobjects, discordobject, presence
+import asyncdispatch, clientobjects, discordobject, presence
 
 proc readyEvent(shard: Shard, json: JsonNode) =
     var readyEvent = ReadyEvent(shard: shard, readyPayload: json, name: $EventType.evtReady)
@@ -26,7 +26,7 @@ proc channelCreateEvent(shard: Shard, json: JsonNode) =
     let channelCreateEvent = ChannelCreateEvent(shard: shard, channel: chnl, name: $EventType.evtChannelCreate)
 
     # Add the channel to its guild's `channels` field
-    if (chnl.guildID != 0):
+    if chnl.guildID != 0:
         shard.client.cache.cacheGuildChannel(chnl.guildID, chnl)
     shard.client.cache.channels[chnl.id] = chnl
 
@@ -38,15 +38,15 @@ proc channelUpdateEvent(shard: Shard, json: JsonNode) =
 
     shard.client.cache.channels[chnl.id] = chnl
 
-    if (chnl.guildID != 0):
+    if chnl.guildID != 0:
         let g = shard.client.cache.getGuild(chnl.guildID)
         
         var index = -1
         for i, channel in g.channels:
-            if (channel.id == chnl.id):
+            if channel.id == chnl.id:
                 index = i
 
-        if (index != -1):
+        if index != -1:
             g.channels[index] = chnl
         else:
             g.channels.add(chnl)
@@ -68,7 +68,7 @@ proc channelPinsUpdate(shard: Shard, json: JsonNode) =
     let channelID = getIDFromJson(json["channel_id"].getStr())
 
     var channel: Channel
-    if (shard.client.cache.channels.hasKey(channelID)):
+    if shard.client.cache.channels.hasKey(channelID):
         channel = shard.client.cache.channels[channelID]
         channel.lastPinTimestamp = json["last_pin_timestamp"].getStr()
 
@@ -194,15 +194,15 @@ proc guildMembersChunk(shard: Shard, json: JsonNode) =
     event.chunkIndex = json["chunk_index"].getInt()
     event.chunkCount = json["chunk_count"].getInt()
 
-    if (json.contains("not_found")):
+    if json.contains("not_found"):
         for id in json["not_found"]:
             event.notFound.add(getIDFromJson(id.getStr()))
 
-    if (json.contains("presences")):
+    if json.contains("presences"):
         for presence in json["presences"]:
             event.presences.add(newPresence(presence))
 
-    if (json.contains("nonce")):
+    if json.contains("nonce"):
         event.nonce = json["nonce"].getStr()
 
     dispatchEvent(event)
@@ -252,7 +252,7 @@ proc inviteCreate(shard: Shard, json: JsonNode) =
 
     invite.channel = shard.client.cache.getChannel(getIDFromJson(json["channel_id"].getStr()))
 
-    if (json.contains("guild_id")):
+    if json.contains("guild_id"):
         invite.guildID =getIDFromJson(json["guild_id"].getStr())
 
     var event = InviteCreateEvent(shard: shard, invite: invite, name: $EventType.evtInviteCreate)
@@ -264,7 +264,7 @@ proc inviteDelete(shard: Shard, json: JsonNode) =
     event.channel = shard.client.cache.getChannel(getIDFromJson(json["channel_id"].getStr()))
     event.code = json["code"].getStr()
 
-    if (json.contains("guild_id")):
+    if json.contains("guild_id"):
         event.guild = shard.client.cache.getGuild(getIDFromJson(json["guild_id"].getStr()))
 
     dispatchEvent(event)
@@ -295,7 +295,7 @@ proc messageDeleteEvent(shard: Shard, json: JsonNode) =
         msg = Message(id: msgID)
 
     msg.channelID = getIDFromJson(json["channel_id"].getStr())
-    if (json.contains("guild_id")):
+    if json.contains("guild_id"):
         msg.guildID = getIDFromJson(json["guild_id"].getStr())
 
     let event = MessageDeleteEvent(shard: shard, message: msg, name: $EventType.evtMessageDelete)
@@ -305,7 +305,7 @@ proc messageDeleteBulkEvent(shard: Shard, json: JsonNode) =
     var event = MessageDeleteBulkEvent(shard: shard, name: $EventType.evtMessageDeleteBulk)
 
     event.channel = shard.client.cache.getChannel(getIDFromJson(json["channel_id"].getStr()))
-    if (json.contains("guild_id")):
+    if json.contains("guild_id"):
         event.guild = shard.client.cache.getGuild(getIDFromJson(json["guild_id"].getStr()))
 
     for msgIDJson in json["ids"]:
@@ -319,7 +319,7 @@ proc messageDeleteBulkEvent(shard: Shard, json: JsonNode) =
             msg = Message(id: msgID, channelID: channelID)
 
             event.channel = shard.client.cache.getChannel(msg.channelID)
-            if (json.contains("guild_id")):
+            if json.contains("guild_id"):
                 msg.guildID = getIDFromJson(json["guild_id"].getStr())
         
         event.messages.add(msg)
@@ -337,12 +337,12 @@ proc messageReactionAdd(shard: Shard, json: JsonNode) =
         msg = Message(id: msgID)
 
     msg.channelID = getIDFromJson(json["channel_id"].getStr())
-    if (json.contains("guild_id")):
+    if json.contains("guild_id"):
         msg.guildID = getIDFromJson(json["guild_id"].getStr())
 
     event.user = shard.client.cache.getUser(getIDFromJson(json["user_id"].getStr()))
 
-    if (json.contains("member")):
+    if json.contains("member"):
         event.member = newGuildMember(json["member"], msg.guildID)
 
     event.emoji = newEmoji(json["emoji"], msg.guildID)
@@ -360,7 +360,7 @@ proc messageReactionRemove(shard: Shard, json: JsonNode) =
         msg = Message(id: msgID)
 
     msg.channelID = getIDFromJson(json["channel_id"].getStr())
-    if (json.contains("guild_id")):
+    if json.contains("guild_id"):
         msg.guildID = getIDFromJson(json["guild_id"].getStr())
 
     event.user = shard.client.cache.getUser(getIDFromJson(json["user_id"].getStr()))
@@ -380,7 +380,7 @@ proc messageReactionRemoveAll(shard: Shard, json: JsonNode) =
         msg = Message(id: msgID)
 
     msg.channelID = getIDFromJson(json["channel_id"].getStr())
-    if (json.contains("guild_id")):
+    if json.contains("guild_id"):
         msg.guildID = getIDFromJson(json["guild_id"].getStr())
 
     dispatchEvent(event)
@@ -396,7 +396,7 @@ proc messageReactionRemoveEmoji(shard: Shard, json: JsonNode) =
         msg = Message(id: msgID)
 
     msg.channelID = getIDFromJson(json["channel_id"].getStr())
-    if (json.contains("guild_id")):
+    if json.contains("guild_id"):
         msg.guildID = getIDFromJson(json["guild_id"].getStr())
 
     event.emoji = newEmoji(json["emoji"], msg.guildID)
@@ -414,9 +414,9 @@ proc presenceUpdate(shard: Shard, json: JsonNode) =
     for role in json["roles"]:
         member.roles.add(getIDFromJson(role.getStr()))
 
-    if (json.contains("premium_since")):
+    if json.contains("premium_since"):
         member.premiumSince = json["premium_since"].getStr()
-    if (json.contains("nick")):
+    if json.contains("nick"):
         member.nick = json["nick"].getStr()
 
     member.presence = newPresence(json)
@@ -426,12 +426,12 @@ proc typingStart(shard: Shard, json: JsonNode) =
 
     event.channel = shard.client.cache.getChannel(getIDFromJson(json["channel_id"].getStr()))
 
-    if (json.contains("guild_id")):
+    if json.contains("guild_id"):
         event.channel.guildID = getIDFromJson(json["guild_id"].getStr())
 
     event.user = shard.client.cache.getUser(getIDFromJson(json["user_id"].getStr()))
 
-    if (json.contains("member")):
+    if json.contains("member"):
         event.member = newGuildMember(json["member"], event.channel.guildID)
 
     dispatchEvent(event)
@@ -504,9 +504,9 @@ let internalEventTable: Table[string, proc(shard: Shard, json: JsonNode) {.nimca
 
 proc handleDiscordEvent*(shard: Shard, json: JsonNode, eventName: string) {.async.} =
     ## Handles, and dispatches, a gateway event. Only used internally.
-    if (internalEventTable.hasKey(eventName)):
+    if internalEventTable.hasKey(eventName):
         let eventProc: proc(shard: Shard, json: JsonNode) = internalEventTable[eventName]
         eventProc(shard, json)
     else:
         echo "Failed to find event: ", eventName
-        
+
