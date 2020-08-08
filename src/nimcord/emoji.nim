@@ -3,15 +3,15 @@ import json, discordobject, nimcordutils, user, httpcore, strutils, uri, strform
 type 
     Emoji* = ref object of DiscordObject
         name*: string
-        roles*: seq[snowflake]
+        roles*: seq[Snowflake]
         user*: User
         requireColons*: bool
         managed*: bool
         animated*: bool
         available*: bool
-        guildID*: snowflake
+        guildID*: Snowflake
 
-proc newEmoji*(json: JsonNode, guild: snowflake): Emoji =
+proc newEmoji*(json: JsonNode, guild: Snowflake): Emoji =
     ## Construct an emoji with json.
     ## This shouldn't really be used by the user, only internal use.
     result = Emoji(
@@ -19,23 +19,23 @@ proc newEmoji*(json: JsonNode, guild: snowflake): Emoji =
         guildID: guild
     )
 
-    if (json.contains("id")):
+    if json.contains("id"):
         result.id = getIDFromJson(json["id"].getStr())
-    if (json.contains("roles")):
+    if json.contains("roles"):
         for role in json["roles"]:
             result.roles.add(getIDFromJson(role.getStr()))
-    if (json.contains("user")):
+    if json.contains("user"):
         result.user = newUser(json["user"])
-    if (json.contains("require_colons")):
+    if json.contains("require_colons"):
         result.requireColons = json["require_colons"].getBool()
-    if (json.contains("managed")):
+    if json.contains("managed"):
         result.managed = json["managed"].getBool()
-    if (json.contains("animated")):
+    if json.contains("animated"):
         result.requireColons = json["animated"].getBool()
-    if (json.contains("available")):
+    if json.contains("available"):
         result.requireColons = json["available"].getBool()
 
-proc newEmoji*(name: string, id: snowflake): Emoji =
+proc newEmoji*(name: string, id: Snowflake): Emoji =
     ## Construct an emoji using its name, and id.
     return Emoji(name: name, id: id)
 
@@ -49,7 +49,7 @@ proc `$`*(emoji: Emoji): string =
     # Check if the emoji has a name but not id.
     # If its true, this means that the emoji is just a unicode
     # representation of the emoji.
-    if (emoji.id == 0 and not emoji.name.isEmptyOrWhitespace()):
+    if emoji.id == 0 and not emoji.name.isEmptyOrWhitespace():
         return emoji.name
     else:
         result = $emoji.id & ":" & emoji.name
@@ -61,13 +61,13 @@ proc `$`*(emoji: Emoji): string =
 proc `==`*(a: Emoji, b: Emoji): bool =
     ## Check if two Emojis are equal.
     # Check if emojis have name but no id
-    if (a.id == 0 and b.id == 0 and a.name.isEmptyOrWhitespace() and b.name.isEmptyOrWhitespace()):
+    if a.id == 0 and b.id == 0 and a.name.isEmptyOrWhitespace() and b.name.isEmptyOrWhitespace():
         return a.name == b.name
     # Check if emoji has IDs, but no name
-    elif (a.id != 0 and b.id != 0 and a.name.isEmptyOrWhitespace() and b.name.isEmptyOrWhitespace()):
+    elif a.id != 0 and b.id != 0 and a.name.isEmptyOrWhitespace() and b.name.isEmptyOrWhitespace():
         return a.id == b.id
     # Check if emoji has IDs, and a name
-    elif (a.id != 0 and b.id != 0 and not a.name.isEmptyOrWhitespace() and not b.name.isEmptyOrWhitespace()):
+    elif a.id != 0 and b.id != 0 and not a.name.isEmptyOrWhitespace() and not b.name.isEmptyOrWhitespace():
         return $a == $b
     return false
 
@@ -77,7 +77,7 @@ proc toUrlEncoding*(emoji: Emoji): string =
     ## library use.
     return encodeUrl($emoji, true)
 
-proc modifyEmoji*(emoji: var Emoji, name: string, roles: seq[snowflake] = @[]): Future[Emoji] {.async.} =
+proc modifyEmoji*(emoji: var Emoji, name: string, roles: seq[Snowflake]): Future[Emoji] {.async.} =
     ## Modify the given emoji. Requires the `MANAGE_EMOJIS` permission.
     ## Changes will be reflected in given `emoji`.
     var jsonBody = %* {

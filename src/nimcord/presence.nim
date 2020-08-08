@@ -48,7 +48,7 @@ type
         url*: string
         createdAt*: uint
         timestamps*: seq[ActivityTimestamp]
-        applicationID*: snowflake
+        applicationID*: Snowflake
         details*: string
         state*: string
         emoji*: Emoji
@@ -64,7 +64,7 @@ type
         activities*: seq[Activity]
         afk*: bool
 
-proc newActivity*(json: JsonNode, guildID: snowflake): Activity = 
+proc newActivity*(json: JsonNode, guildID: Snowflake): Activity = 
     ## Parse a new activity from json.
     var act = Activity(
         name: json["name"].getStr(),
@@ -78,44 +78,44 @@ proc newActivity*(json: JsonNode, guildID: snowflake): Activity =
         flags: uint(json{"flags"}.getInt()),
     )
 
-    if (json.contains("timestamps")):
+    if json.contains("timestamps"):
         var time = ActivityTimestamp()
-        if (json["timestamps"].contains("start")):
+        if json["timestamps"].contains("start"):
             time.startTime = uint(json["timestamps"]{"start"}.getInt())
-        if (json["timestamps"].contains("end")):
+        if json["timestamps"].contains("end"):
             time.endTime = uint(json["timestamps"]{"end"}.getInt())
 
         act.timestamps.add(time)
                 
-    if (json.contains("emoji")):
+    if json.contains("emoji"):
         act.emoji = newEmoji(json["emoji"], guildID)
 
-    if (json.contains("party")):
+    if json.contains("party"):
         var party = ActivityParty()
-        if (json["party"].contains("id")):
+        if json["party"].contains("id"):
             party.id = json["party"]["id"].getStr()
-        if (json["party"].contains("size")):
+        if json["party"].contains("size"):
             party.currentSize = uint(json["party"]["size"].elems[0].getInt())
             party.maxSize = uint(json["party"]["size"].elems[1].getInt())
 
-    if (json.contains("assets")):
+    if json.contains("assets"):
         var assets = ActivityAssets()
-        if (json["assets"].contains("large_image")):
+        if json["assets"].contains("large_image"):
             assets.largeImg = json["assets"]["large_image"].getStr()
-        if (json["assets"].contains("large_text")):
+        if json["assets"].contains("large_text"):
             assets.largeText = json["assets"]["large_text"].getStr()
-        if (json["assets"].contains("small_image")):
+        if json["assets"].contains("small_image"):
             assets.smallImg = json["assets"]["small_image"].getStr()
-        if (json["assets"].contains("small_text")):
+        if json["assets"].contains("small_text"):
             assets.smallText = json["assets"]["small_text"].getStr()
 
-    if (json.contains("secrets")):
+    if json.contains("secrets"):
         var secrets = ActivitySecrets()
-        if (json["secrets"].contains("join")):
+        if json["secrets"].contains("join"):
             secrets.join = json["secrets"]["join"].getStr()
-        if (json["secrets"].contains("spectate")):
+        if json["secrets"].contains("spectate"):
             secrets.spectate = json["secrets"]["spectate"].getStr()
-        if (json["secrets"].contains("match")):
+        if json["secrets"].contains("match"):
             secrets.match = json["secrets"]["match"].getStr()
 
 proc newPresence*(json: JsonNode): Presence =
@@ -124,7 +124,7 @@ proc newPresence*(json: JsonNode): Presence =
         status: json["status"].getStr()
     )
 
-    if (json.contains("game") and json["game"].getFields().len > 0):
+    if json.contains("game") and json["game"].getFields().len > 0:
         let guildID = if json.contains("guild_id"): getIDFromJson(json["guild_id"].getStr()) else: 0
         result.game = newActivity(json["game"], guildID)
 

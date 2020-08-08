@@ -39,12 +39,12 @@ type
 
     Permissions* = ref object
         ## This type referes to a user's permissions given by the role or per user.
-        roleUserID*: snowflake
+        roleUserID*: Snowflake
         allowPerms*: uint
         denyPerms*: uint
         permissionType*: PermissionType
 
-proc newPermissions*(id: snowflake, `type`: PermissionType, byteSet: uint): Permissions =
+proc newPermissions*(id: Snowflake, `type`: PermissionType, byteSet: uint): Permissions =
     ## Create a new `Permissions` using an id, type, and byte set.
     result = Permissions(roleUserID: id, permissionType: `type`, allowPerms: byteSet)
 
@@ -56,7 +56,7 @@ proc newPermissions*(json: JsonNode): Permissions =
         denyPerms: uint(json["deny"].getInt())
     )
 
-    if (json["type"].getStr() == "role"):
+    if json["type"].getStr() == "role":
         result.permissionType = PermissionType.permTypeRole
     else:
         result.permissionType = PermissionType.permTypeMember
@@ -71,7 +71,7 @@ proc addAllowPermission*(perms: Permissions, perm: Permission): Future[Permissio
     ## If it finds the permission in denyPerms, it will remove it from that also.
     
     # Check if the permission is in deny, and remove it.
-    if ((perms.denyPerms and uint(perm)) == uint(perm)):
+    if (perms.denyPerms and uint(perm)) == uint(perm):
         perms.denyPerms = perms.denyPerms and (not uint(perm))
 
     perms.allowPerms = perms.allowPerms or uint(perm)
@@ -81,7 +81,7 @@ proc addDenyPermission*(perms: Permissions, perm: Permission): Future[Permission
     ## If it finds the permission in allowPerms, it will remove it from that also.
     
     # Check if the permission is in allowed, and remove it.
-    if ((perms.allowPerms and uint(perm)) == uint(perm)):
+    if (perms.allowPerms and uint(perm)) == uint(perm):
         perms.allowPerms = perms.allowPerms and (not uint(perm))
 
     perms.denyPerms = perms.denyPerms or uint(perm)
@@ -94,7 +94,7 @@ proc permissionsToJson*(perms: Permissions): JsonNode =
         "deny": perms.denyPerms
     }
 
-    if (perms.permissionType == PermissionType.permTypeMember):
+    if perms.permissionType == PermissionType.permTypeMember:
         json.add("type", %"member")
     else:
         json.add("type", %"role")

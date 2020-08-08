@@ -1,6 +1,6 @@
 import websocket, asyncdispatch, json, httpClient, eventdispatcher, strformat
-import eventhandler, streams, nimcordutils, discordobject, user, cache, clientobjects
-import strutils, channel, options, message, emoji, guild, embed, os, presence
+import nimcordutils, cache, clientobjects
+import strutils, options, presence
 
 type
     DiscordOpCode = enum
@@ -16,10 +16,23 @@ type
         opHello = 10,
         opHeartbeatAck = 11
 
+# Forward declarations
+proc closeConnection*(shard: Shard, code: int = 1000) {.async.}
+proc getIdentifyPacket(shard: Shard): JsonNode
+proc handleGatewayDisconnect(shard: Shard, error: string) {.async.}
+proc handleHeartbeat(shard: Shard) {.async.}
+proc handleWebsocketPacket(shard: Shard) {.async.} 
+proc newDiscordClient*(tkn: string): DiscordClient
+proc newShard(shardID: int, client: DiscordClient): Shard
+proc reconnectShard(shard: Shard) {.async.}
+proc sendGatewayRequest*(shard: Shard, request: JsonNode, msg: string = "") {.async.}
+proc startConnection*(client: DiscordClient, shardAmount: int = 1) {.async.}
+proc updateClientPresence*(shard: Shard, presence: Presence) {.async.}
+
 proc sendGatewayRequest*(shard: Shard, request: JsonNode, msg: string = "") {.async.} =
     ## Send a gateway request.
     ## Don't use this unless you know what you're doing!
-    if (msg.len == 0):
+    if msg.len == 0:
         echo "Sending gateway payload: ", request
     else:
         echo msg
@@ -29,7 +42,7 @@ proc sendGatewayRequest*(shard: Shard, request: JsonNode, msg: string = "") {.as
 proc handleHeartbeat(shard: Shard) {.async.} =
     while true:
         var heartbeatPayload: JsonNode
-        if (shard.lastSequence == 0):
+        if shard.lastSequence == 0:
             heartbeatPayload = %* { "d": nil, "op": ord(DiscordOpCode.opHeartbeat) }
         else:
             heartbeatPayload = %* { "d": shard.lastSequence, "op": ord(DiscordOpCode.opHeartbeat) }
@@ -53,11 +66,8 @@ proc getIdentifyPacket(shard: Shard): JsonNode =
         }
     }
 
-    if (shard.client.shardCount != -1):
+    if shard.client.shardCount != -1:
         result.add("shard", %*[shard.id, shard.client.shardCount])
-
-# For some reason this shows as an error in VSCode, but it compiles fine.
-#proc startConnection*(client: DiscordClient, shardCount: int = 1) {.async.}
 
 proc closeConnection*(shard: Shard, code: int = 1000) {.async.} =
     echo "Disconnecting with code: ", code
@@ -73,7 +83,7 @@ proc reconnectShard(shard: Shard) {.async.} =
 
     shard.reconnecting = false
     shard.heartbeatAcked = true
-    #waitFor client.startConnection()
+    # waitFor client.startConnection()
 
 # Handle discord disconnect. If it detects that we can reconnect, it will.
 proc handleGatewayDisconnect(shard: Shard, error: string) {.async.} =
@@ -87,21 +97,20 @@ proc handleGatewayDisconnect(shard: Shard, error: string) {.async.} =
     let c = disconnectData.code
 
     # 4003, 4004, 4005, 4007, 4010, 4011, 4012, 4013 are not reconnectable.
-    if ( (c >= 4003 and c <= 4005) or c == 4007 or (c >= 4010 and c <= 4013) ):
+    if  (c >= 4003 and c <= 4005) or c == 4007 or (c >= 4010 and c <= 4013):
         echo "The Discord gateway sent a disconnect code that we cannot reconnect to."
     else:
-        if (not shard.reconnecting):
+        if not shard.reconnecting:
             waitFor shard.reconnectShard()
         else:
             echo "Gateway is cannot reconnect due to already reconnecting..."
             
-
 #TODO: Reconnecting may be done, just needs testing.
 proc handleWebsocketPacket(shard: Shard) {.async.} = 
     while true:
         var packet: tuple[opcode: Opcode, data: string]
 
-        packet = await shard.ws.readData();
+        packet = await shard.ws.readData()
         echo "[SHARD ", $shard.id, "] Received gateway payload: ", packet.data
 
         if packet.opcode == Opcode.Close:
@@ -111,12 +120,12 @@ proc handleWebsocketPacket(shard: Shard) {.async.} =
 
         # If we fail to parse the json just stop this loop
         try:
-            json = parseJson(packet.data);
+            json = parseJson(packet.data)
         except:
             echo "Failed to parse websocket payload: ", packet.data
             continue
 
-        if (json.contains("s")):
+        if json.contains("s"):
             shard.lastSequence = json["s"].getInt()
 
         case json["op"].getInt()
@@ -173,7 +182,7 @@ proc startConnection*(client: DiscordClient, shardAmount: int = 1) {.async.} =
     ## .. code-block:: nim 
     ##   var tokenStream = newFileStream("token.txt", fmRead)
     ##   var tkn: string
-    ##   if (not isNil(tokenStream)):
+    ##   if not isNil(tokenStream):
     ##      discard tokenStream.readLine(tkn)
     ##      echo "Read token from the file: ", tkn
     ## 
@@ -182,13 +191,14 @@ proc startConnection*(client: DiscordClient, shardAmount: int = 1) {.async.} =
     ##   var bot = newDiscordClient(tkn)
     echo "Connecting..."
 
-    let urlResult = sendRequest(endpoint("/gateway/bot"), HttpMethod.HttpGet, defaultHeaders())
-    if (urlResult.contains("url")):
+    # let urlResult = sendRequest(endpoint("/gateway/bot"), HttpMethod.HttpGet, defaultHeaders())
+    let urlResult = sendRequest(endpoint("/gateway"), HttpMethod.HttpGet, defaultHeaders())
+    if urlResult.contains("url"):
         let url = urlResult["url"].getStr()
         client.endpoint = url
 
         var shardCount = shardAmount
-        if (shardCount < urlResult["shards"].getInt()):
+        if urlResult.hasKey("shards") and shardCount < urlResult["shards"].getInt():
             shardCount = urlResult["shards"].getInt()
         client.shardCount = shardCount
 

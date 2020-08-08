@@ -4,4 +4,4 @@ description   = "Discord API wrapper written in Nim. Inspired by DisC++, my othe
 license       = "MIT"
 srcDir        = "src"
 
-requires "nim >= 1.0.0", "websocket >= 0.4.0 & <= 0.4.1"
+requires "nim >= 1.2.0", "websocket >= 0.4.0 & <= 0.4.1"

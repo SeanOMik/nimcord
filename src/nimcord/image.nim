@@ -9,7 +9,7 @@ proc newImage*(filepath: string): Image =
     ## Reads from a file that exists at `filepath`. It reads the image data,
     ## and image extension for later use.
     var imageStream = newFileStream(filepath, fmRead)
-    if (not isNil(imageStream)):
+    if not isNil(imageStream):
         let data = imageStream.readALL()
 
         # Get the file's extension and remove the `.` from the start of it

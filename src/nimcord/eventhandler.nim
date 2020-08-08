@@ -130,7 +130,7 @@ type
         members*: seq[GuildMember]
         chunkIndex*: int
         chunkCount*: int
-        notFound*: seq[snowflake]
+        notFound*: seq[Snowflake]
         presences*: seq[Presence]
         nonce*: string
 
@@ -252,7 +252,7 @@ proc registerEventListener*(event: EventType, listener: proc(event: BaseEvent)) 
     ##      echo "ID: ", bot.clientUser.id
     ##      echo "--------------------"
     ##   )
-    if (eventListeners.hasKey($event)):
+    if eventListeners.hasKey($event):
         eventListeners[$event].add(cast[proc(event: BaseEvent)](listener))
 
         echo "Added other event listener: ", $event
@@ -264,7 +264,7 @@ proc registerEventListener*(event: EventType, listener: proc(event: BaseEvent)) 
 
 proc dispatchEvent*[T: BaseEvent](event: T) = 
     ## Dispatches an event so something can listen to it.
-    if (eventListeners.hasKey(event.name)):
+    if eventListeners.hasKey(event.name):
         let listeners = eventListeners[event.name]
         echo "Dispatching event: ", event.name
         for index, eventListener in listeners.pairs:

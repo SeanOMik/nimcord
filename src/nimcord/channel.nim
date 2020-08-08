@@ -14,21 +14,21 @@ type
     Channel* = ref object of DiscordObject
         ## Discord channel object.
         `type`*: ChannelType ## The type of channel.
-        guildID*: snowflake ## The id of the guild.
+        guildID*: Snowflake ## The id of the guild.
         position*: int ## Sorting position of the channel.
         permissionOverwrites*: seq[Permissions] ## Explicit permission overwrites for members and roles.
         name*: string ## The name of the channel (2-100 characters).
         topic*: string ## The channel topic (0-1024 characters).
         nsfw*: bool ## Whether the channel is nsfw.
-        lastMessageID*: snowflake ## The id of the last message sent in this channel (may not point to an existing or valid message).
+        lastMessageID*: Snowflake ## The id of the last message sent in this channel (may not point to an existing or valid message).
         bitrate*: int ## The bitrate (in bits) of the voice channel.
         userLimit*: int ## The user limit of the voice channel.
         rateLimitPerUser*: int ## Amount of seconds a user has to wait before sending another message (0-21600); bots, as well as users with the permission manage_messages or manage_channel, are unaffected.
         recipients*: seq[User] ## The recipients of the DM
         icon*: string ## Icon hash
-        ownerID*: snowflake ## ID of the DM creator
-        applicationID*: snowflake ## Application id of the group DM creator if it is bot-created
-        parentID*: snowflake ## ID of the parent category for a channel
+        ownerID*: Snowflake ## ID of the DM creator
+        applicationID*: Snowflake ## Application id of the group DM creator if it is bot-created
+        parentID*: Snowflake ## ID of the parent category for a channel
         lastPinTimestamp*: string ## When the last pinned message was pinned
     
     ChannelFields* = ref object
@@ -41,13 +41,13 @@ type
         rateLimitPerUser*: Option[int]
         position*: Option[int]
         permissionOverwrites*: Option[seq[Permissions]] ## Explicit permission overwrites for members and roles.
-        parentID*: Option[snowflake]
+        parentID*: Option[Snowflake]
         nsfw*: Option[bool]
 
     Invite* = object
         ## Represents a code that when used, adds a user to a guild or group DM channel.
         code*: string ## The invite code (unique ID)
-        guildID*: snowflake ## The guild this invite is for
+        guildID*: Snowflake ## The guild this invite is for
         channel*: Channel ## The channel this invite is for
         inviter*: User ## The user who created the invite
         targetUser*: User ## The target user for this invite
@@ -74,39 +74,39 @@ proc newChannel*(channel: JsonNode): Channel {.inline.} =
         `type`: ChannelType(channel["type"].getInt())
     )
 
-    if (channel.contains("guild_id")):
+    if channel.contains("guild_id"):
         chan.guildID = getIDFromJson(channel["guild_id"].getStr())
-    if (channel.contains("position")):
+    if channel.contains("position"):
         chan.position = channel["position"].getInt()
-    if (channel.contains("permission_overwrites")):
+    if channel.contains("permission_overwrites"):
         for perm in channel["permission_overwrites"]:
             chan.permissionOverwrites.add(newPermissions(perm))
-    if (channel.contains("name")):
+    if channel.contains("name"):
         chan.name = channel["name"].getStr()
-    if (channel.contains("topic")):
+    if channel.contains("topic"):
         chan.topic = channel["topic"].getStr()
-    if (channel.contains("nsfw")):
+    if channel.contains("nsfw"):
         chan.nsfw = channel["nsfw"].getBool()
-    if (channel.contains("last_message_id")):
+    if channel.contains("last_message_id"):
         chan.lastMessageID = getIDFromJson(channel["last_message_id"].getStr())
-    if (channel.contains("bitrate")):
+    if channel.contains("bitrate"):
         chan.bitrate = channel["bitrate"].getInt()
-    if (channel.contains("user_limit")):
+    if channel.contains("user_limit"):
         chan.userLimit = channel["user_limit"].getInt()
-    if (channel.contains("rate_limit_per_user")):
+    if channel.contains("rate_limit_per_user"):
         chan.rateLimitPerUser = channel["rate_limit_per_user"].getInt()
-    if (channel.contains("recipients")):
+    if channel.contains("recipients"):
         for recipient in channel["recipients"]:
             chan.recipients.insert(newUser(recipient))
-    if (channel.contains("icon")):
+    if channel.contains("icon"):
         chan.icon = channel["icon"].getStr()
-    if (channel.contains("owner_id")):
+    if channel.contains("owner_id"):
         chan.ownerID = getIDFromJson(channel["owner_id"].getStr())
-    if (channel.contains("application_id")):
+    if channel.contains("application_id"):
         chan.applicationID = getIDFromJson(channel["application_id"].getStr())
-    if (channel.contains("parent_id")):
+    if channel.contains("parent_id"):
         chan.parentID = getIDFromJson(channel["parent_id"].getStr())
-    if (channel.contains("last_pin_timestamp")):
+    if channel.contains("last_pin_timestamp"):
         chan.lastPinTimestamp = channel["last_pin_timestamp"].getStr()
 
     return chan
@@ -117,23 +117,23 @@ proc newInvite*(json: JsonNode): Invite {.inline.} =
         code: json["code"].getStr(),
         channel: newChannel(json["channel"])
     )
-    if (json.contains("guild")):
+    if json.contains("guild"):
         invite.guildID = getIDFromJson(json["guild"]["id"].getStr())
-    if (json.contains("target_user")):
+    if json.contains("target_user"):
         invite.targetUser = newUser(json["target_user"])
-    if (json.contains("approximate_presence_count")):
+    if json.contains("approximate_presence_count"):
         invite.approximatePresenceCount = json["approximate_presence_count"].getInt()
-    if (json.contains("approximate_member_count")):
+    if json.contains("approximate_member_count"):
         invite.approximateMemberCount = json["approximate_member_count"].getInt()
-    if (json.contains("uses")):
+    if json.contains("uses"):
         invite.uses = json["uses"].getInt()
-    if (json.contains("max_uses")):
+    if json.contains("max_uses"):
         invite.maxUsers = json["max_uses"].getInt()
-    if (json.contains("max_age")):
+    if json.contains("max_age"):
         invite.maxAge = json["max_age"].getInt()
-    if (json.contains("temporary")):
+    if json.contains("temporary"):
         invite.temporary = json["temporary"].getBool()
-    if (json.contains("created_at")):
+    if json.contains("created_at"):
         invite.createdAt = json["created_at"].getStr()
 
     return invite
@@ -142,10 +142,10 @@ proc sendMessage*(channel: Channel, content: string, tts: bool = false, embed: E
     ## Send a message through the channel. 
     var messagePayload = %*{"content": content, "tts": tts}
 
-    if (not embed.isNil()):
+    if not embed.isNil():
         messagePayload.add("embed", embed.embedJson)
 
-    if (files.len != 0):
+    if files.len != 0:
         var client = newHttpClient()
         let endpoint = endpoint("/channels/" & $channel.id & "/messages")
         var multipart = newMultipartData()
@@ -154,7 +154,7 @@ proc sendMessage*(channel: Channel, content: string, tts: bool = false, embed: E
 
         for index, file in files:
             var imageStream = newFileStream(file.filePath, fmRead)
-            if (not isNil(imageStream)):
+            if not isNil(imageStream):
                 let data = imageStream.readALL()
                 multipart.add("file" & $index, data, file.fileName, "application/octet-stream", false)
                 
@@ -184,37 +184,37 @@ proc modifyChannel*(channel: Channel, modify: ChannelFields): Future[Channel] {.
 
     var modifyPayload = %*{}
 
-    if (modify.name.isSome):
+    if modify.name.isSome:
         modifyPayload.add("name", %modify.name.get())
 
-    if (modify.`type`.isSome):
+    if modify.`type`.isSome:
         modifyPayload.add("type", %modify.`type`.get())
 
-    if (modify.position.isSome):
+    if modify.position.isSome:
         modifyPayload.add("position", %modify.position.get())
 
-    if (modify.topic.isSome):
+    if modify.topic.isSome:
         modifyPayload.add("topic", %modify.topic.get())
 
-    if (modify.nsfw.isSome):
+    if modify.nsfw.isSome:
         modifyPayload.add("nsfw", %modify.nsfw.get())
 
-    if (modify.rateLimitPerUser.isSome):
+    if modify.rateLimitPerUser.isSome:
         modifyPayload.add("rate_limit_per_user", %modify.rateLimitPerUser.get())
 
-    if (modify.bitrate.isSome):
+    if modify.bitrate.isSome:
         modifyPayload.add("bitrate", %modify.bitrate.get())
 
-    if (modify.userLimit.isSome):
+    if modify.userLimit.isSome:
         modifyPayload.add("user_limit", %modify.userLimit.get())
 
-    if (modify.permissionOverwrites.isSome):
+    if modify.permissionOverwrites.isSome:
         var permOverwrites = parseJson("[]")
         for perm in modify.permissionOverwrites.get():
             permOverwrites.add(perm.permissionsToJson())
         modifyPayload.add("permission_overwrites", permOverwrites)
 
-    if (modify.parentID.isSome):
+    if modify.parentID.isSome:
         modifyPayload.add("parent_id", %modify.parentID.get())
 
     return newChannel(sendRequest(endpoint("/channels/" & $channel.id), HttpPatch, 
@@ -229,9 +229,9 @@ proc deleteChannel*(channel: Channel) {.async.} =
 type MessagesGetRequest* = object
     ## Use this type to get a channel's messages by setting some of the fields.
     ## You can only set one of `around`, `before`, or `after`.
-    around*: Option[snowflake]
-    before*: Option[snowflake]
-    after*: Option[snowflake]
+    around*: Option[Snowflake]
+    before*: Option[Snowflake]
+    after*: Option[Snowflake]
     limit*: Option[int]
 
 proc getMessages*(channel: Channel, request: MessagesGetRequest): seq[Message] =
@@ -245,24 +245,24 @@ proc getMessages*(channel: Channel, request: MessagesGetRequest): seq[Message] =
 
     var url: string = endpoint("/channels/" & $channel.id & "/messages?")
 
-    if (request.around.isSome):
+    if request.around.isSome:
         url = url & "around=" & $request.around.get()
 
     # Raise some exceptions to make sure the user doesn't
     # try to set more than one of these fields
-    if (request.before.isSome):
-        if (request.around.isSome):
+    if request.before.isSome:
+        if request.around.isSome:
             raise newException(Defect, "You cannot get around and before a message! Choose one...")
         url = url & "before=" & $request.before.get()
 
-    if (request.after.isSome):
-        if (request.around.isSome or request.before.isSome):
+    if request.after.isSome:
+        if request.around.isSome or request.before.isSome:
             raise newException(Defect, "You cannot get around/before and after a message! Choose one...")
         url = url & "after=" & $request.after.get()
 
-    if (request.limit.isSome):
+    if request.limit.isSome:
         # Add the `&` for the url if something else is set.
-        if (request.around.isSome or request.before.isSome or request.after.isSome):
+        if request.around.isSome or request.before.isSome or request.after.isSome:
             url = url & "&"
         
         url = url & "limit=" & $request.limit.get()
@@ -273,15 +273,15 @@ proc getMessages*(channel: Channel, request: MessagesGetRequest): seq[Message] =
     for message in response:
         result.add(newMessage(message))
 
-proc getMessage*(channel: Channel, messageID: snowflake): Message =
+proc getMessage*(channel: Channel, messageID: Snowflake): Message =
     ## Requests a message from the channel via the Discord REST API.
     return newMessage(sendRequest(endpoint("/channels/" & $channel.id & "/messages/" & $messageID), HttpGet, 
         defaultHeaders(), channel.id, RateLimitBucketType.channel))
 
 
-proc bulkDeleteMessages*(channel: Channel, messageIDs: seq[snowflake]) {.async.} =
+proc bulkDeleteMessages*(channel: Channel, messageIDs: seq[Snowflake]) {.async.} =
     ## Bulk delete channel messages. This endpoint can only delete 2-100 messages.
-    ## This proc takes a seq[snowflakes] represtenting the message's IDs.
+    ## This proc takes a seq[Snowflakes] represtenting the message's IDs.
     ## The messages can not be older than 2 weeks!
     ## 
     ## See also:
@@ -301,8 +301,8 @@ proc bulkDeleteMessages*(channel: Channel, messages: seq[Message]) {.async.} =
     ## The messages can not be older than 2 weeks!
     ## 
     ## See also:
-    ## * `bulkDeleteMessages(channel: Channel, messageIDs: seq[snowflake])`_
-    var messageIDs: seq[snowflake]
+    ## * `bulkDeleteMessages(channel: Channel, messageIDs: seq[Snowflake])`_
+    var messageIDs: seq[Snowflake]
     for msg in messages:
         messageIDs.add(msg.id)
 
@@ -329,7 +329,7 @@ type CreateInviteFields* = object
     maxUses: Option[int] ## Max number of uses or 0 for unlimited
     temporary: Option[bool] ## Whether this invite only grants temporary membership
     unique: Option[bool] ## If true, don't try to reuse a similar invite (useful for creating many unique one time use invites)
-    targetUser: Option[snowflake] ## The target user id for this invite
+    targetUser: Option[Snowflake] ## The target user id for this invite
     targetUserType: Option[int] ## The type of target user for this invite
 
 proc createChannelInvite*(channel: Channel, fields: CreateInviteFields): Invite =
@@ -344,18 +344,18 @@ proc createChannelInvite*(channel: Channel, fields: CreateInviteFields): Invite 
     ##   channel.createChannelInvite(CreateInviteFields(maxAge: 3600, maxUses: 10))
     var createPayload = %*{}
 
-    if (fields.maxAge.isSome):
+    if fields.maxAge.isSome:
         createPayload.add("max_age", %fields.maxAge.get())
-    if (fields.maxUses.isSome):
+    if fields.maxUses.isSome:
         createPayload.add("max_uses", %fields.maxUses.get())
-    if (fields.temporary.isSome):
+    if fields.temporary.isSome:
         createPayload.add("temporary", %fields.temporary.get())
-    if (fields.unique.isSome):
+    if fields.unique.isSome:
         createPayload.add("unique", %fields.unique.get())
-    if (fields.targetUser.isSome):
+    if fields.targetUser.isSome:
         createPayload.add("target_user", %fields.targetUser.get())
     # Not sure if its needed because it can only be `1`
-    #[ if (fields.targetUserType.isSome):
+    #[ if fields.targetUserType.isSome:
         createPayload.add("target_user_type", %fields.targetUserType.get()) ]#
 
     return newInvite(sendRequest(endpoint("/channels/" & $channel.id & "/invites"), HttpPost, 
