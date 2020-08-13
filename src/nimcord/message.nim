@@ -68,25 +68,25 @@ type
         width*: int
 
     Message* = ref object of DiscordObject
-        channelID*: Snowflake
-        guildID*: Snowflake
-        author*: User
-        member*: GuildMember
-        content*: string
-        timestamp*: string
-        editedTimestamp*: string
-        tts*: bool
-        mentionEveryone*: bool
-        mentions*: seq[User]
-        mentionRoles*: seq[Snowflake]
-        mentionChannels*: seq[ChannelMention]
-        attachments*: seq[MessageAttachment]
-        embeds*: seq[Embed]
-        reactions*: seq[Reaction]
-        pinned*: bool
-        webhookID*: Snowflake
-        `type`*: MessageType
-        activity*: MessageActivity
+        channelID*: Snowflake ## The channel the current message was sent in 
+        guildID*: Snowflake ## The guild? the current message was sent in
+        author*: User ## The author of the current message
+        member*: GuildMember ## The guild member of the current message
+        content*: string ## The content of the current message
+        timestamp*: string ## The timestamp of the current message
+        editedTimestamp*: string ## The edit timestamp of the current message (if there is one)
+        tts*: bool ## Whether or not the current message is Text To Speech enabled
+        mentionEveryone*: bool ## Whether or not the current message mentions everyone
+        mentions*: seq[User] ## A list of the mentions in the current message 
+        mentionRoles*: seq[Snowflake] ## A list of role mentions in the current message
+        mentionChannels*: seq[ChannelMention] ## A list of channel mentions in the current message
+        attachments*: seq[MessageAttachment] ## A list of attachments in the current message
+        embeds*: seq[Embed] ## A list of embeds in the current message
+        reactions*: seq[Reaction] ## A list of reactions in the current message 
+        pinned*: bool ## Whether or not this message is pinned
+        webhookID*: Snowflake ## The id of the webhook? that sent the current message
+        `type`*: MessageType ## The type of message
+        activity*: MessageActivity 
         application*: MessageApplication
         messageReference*: MessageReference
         flags*: int

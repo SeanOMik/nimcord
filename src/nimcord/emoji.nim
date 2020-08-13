@@ -2,14 +2,14 @@ import json, discordobject, nimcordutils, user, httpcore, strutils, uri, strform
 
 type 
     Emoji* = ref object of DiscordObject
-        name*: string
-        roles*: seq[Snowflake]
-        user*: User
-        requireColons*: bool
-        managed*: bool
-        animated*: bool
-        available*: bool
-        guildID*: Snowflake
+        name*: string ## The name of the current emoji
+        roles*: seq[Snowflake] ## Roles allowed to use the current emoji
+        user*: User ## The user who created the current em,oji
+        requireColons*: bool ## Whether or not the emoji requires colons : 
+        managed*: bool ## Whether or not the emoji is managed
+        animated*: bool ## Whether or not the emoji is animated
+        available*: bool 
+        guildID*: Snowflake ## The guild this emoji belongs to
 
 proc newEmoji*(json: JsonNode, guild: Snowflake): Emoji =
     ## Construct an emoji with json.

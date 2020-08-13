@@ -1,14 +1,14 @@
 import json, nimcordutils, discordobject, permission, options, httpcore, asyncdispatch, strformat
 
 type Role* = ref object of DiscordObject
-    name*: string
-    color*: uint
-    hoist*: bool
-    position*: uint
-    permissions*: Permissions
-    managed*: bool
-    mentionable*: bool
-    guildID*: Snowflake
+    name*: string ## The name of the current role
+    color*: uint ## the color of the current role
+    hoist*: bool ## Whether or not the role is hoisted 
+    position*: uint ## The position of the current role 
+    permissions*: Permissions ## The permissions of the current role
+    managed*: bool 
+    mentionable*: bool ## Whether or not the current role is mentionable
+    guildID*: Snowflake ## The guild id of the current role
 
 proc newRole*(json: JsonNode, guild: Snowflake): Role =
     ## Parses role from json.

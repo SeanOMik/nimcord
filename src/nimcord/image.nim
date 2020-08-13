@@ -1,9 +1,9 @@
 import base64, streams, os, strformat
 
 type Image* = ref object
-    filepath*: string
-    extension: string
-    base64Encoded: string
+    filepath*: string ## The filepath of the current image
+    extension: string ## The extension of the current image
+    base64Encoded: string 
 
 proc newImage*(filepath: string): Image =
     ## Reads from a file that exists at `filepath`. It reads the image data,
