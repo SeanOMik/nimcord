@@ -8,10 +8,93 @@ if (not isNil(tokenStream)):
 
     tokenStream.close()
 
-var bot = newDiscordClient(tkn)
+var bot = newDiscordClient(tkn, "?")
 
+let pingCommand = Command(name: "ping", commandBody: proc(ctx: CommandContext) = 
+    discard ctx.channel.sendMessage("PONG")
+)
+
+let modifyChannelTopicCommand = Command(name: "modifyChannelTopic", commandBody: proc(ctx: CommandContext) = 
+    let modifyTopic = ctx.message.content.substr(20)
+
+    discard ctx.channel.sendMessage("Modifing Channel!")
+    discard ctx.channel.modifyChannel(ChannelFields(topic: some(modifyTopic)))
+)
+
+let deleteChannelCommand = Command(name: "deleteChannel", commandBody: proc(ctx: CommandContext) =
+    let channelID = getIDFromJson(ctx.arguments[0])
+    var channel: Channel = ctx.client.cache.getChannel(channelID)
+    
+    # Check if we could find the channel to delete
+    if (channel != nil):
+        discard channel.sendMessage("Deleting Channel!")
+        discard channel.deleteChannel()
+        discard ctx.channel.sendMessage("Deleted Channel!")
+)
+
+let bulkDeleteMessagesCommand = Command(name: "bulkDeleteMessages", commandBody: proc(ctx: CommandContext) =
+    var amount: int = 25
+    if (ctx.message.content.len > 19):
+        amount = parseIntEasy(ctx.arguments[0])
+
+    # Get the message to delete, then delete them.
+    let messages = ctx.channel.getMessages(MessagesGetRequest(limit: some(amount), before: some(ctx.message.id)))
+    discard ctx.channel.bulkDeleteMessages(messages)
+
+    # Delete the message that was used to run this command.
+    discard ctx.message.deleteMessage()
+)
+
+let reactToMessageCommand = Command(name: "reactToMessage", commandBody: proc(ctx: CommandContext) =
+    let emojis = @[newEmoji("⏮️"), newEmoji("⬅️"), newEmoji("⏹️"), newEmoji("➡️"), newEmoji("⏭️")]
+    for emoji in emojis:
+        discard ctx.message.addReaction(emoji)
+)
+
+let testEmbedCommand = Command(name: "testEmbed", commandBody: proc(ctx: CommandContext) =
+    var embed = Embed()
+    embed.setTitle("This embed is being sent from Nimcord!")
+    embed.setDescription("Nimcord was developed in about a week of actual work so there will likely be issues.")
+    embed.addField("Title", "value")
+    embed.addField("Inline-0", "This is an inline field 0", true)
+    embed.addField("Inline-1", "This is an inline field 1", true)
+    embed.setColor(0xffb900)
+    discard ctx.channel.sendMessage("", false, embed)
+)
+
+let sendFileCommand = Command(name: "sendFile", commandBody: proc(ctx: CommandContext) =
+    let filePath = ctx.message.content.substr(10)
+
+    let splitFile = splitFile(filePath)
+    let fileName = splitFile.name & splitFile.ext
+
+    let file = DiscordFile(filePath: filePath, fileName: fileName)
+    discard ctx.channel.sendMessage("", false, nil, @[file])
+)
+
+let sendImageCommand = Command(name: "sendImage", commandBody: proc(ctx: CommandContext) =
+    let filePath = ctx.message.content.substr(11)
+
+    let splitFile = splitFile(filePath)
+    let fileName = splitFile.name & splitFile.ext
+
+    let file = DiscordFile(filePath: filePath, fileName: fileName)
+
+    var embed = Embed()
+    embed.setTitle("Image attachment test.")
+    embed.setImage("attachment://" & fileName)
+    discard ctx.channel.sendMessage("", false, embed, @[file])
+)
+
+# You can even register commands like this:
+registerCommand(Command(name: "ping2", commandBody: proc(ctx: CommandContext) = 
+    discard ctx.channel.sendMessage("PONG3")
+))
+
+# Listen for the ready event.
 registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
-    let event = ReadyEvent(bEvt)
+    # Cast the BaseEvent to the ReadyEvent which is what we're listening to.
+    let event = ReadyEvent(bEvt) 
 
     echo "Ready! (v", 0, ".", 0, ".", 1, ")"
     echo "Logged in as: ", bot.clientUser.username, "#", bot.clientUser.discriminator
@@ -20,83 +103,16 @@ registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
 
     let presence = newPresence("with Nimcord", activityTypeGame, clientStatusIdle, false)
     asyncCheck event.shard.updateClientPresence(presence)
-)
 
-registerEventListener(EventType.evtMessageCreate, proc(bEvt: BaseEvent) =
-    let event = MessageCreateEvent(bEvt)
-
-    if (event.message.content == "?ping"):
-        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
-        if (channel != nil):
-            discard channel.sendMessage("PONG")
-    elif (event.message.content.startsWith("?modifyChannelTopic")):
-        let modifyTopic = event.message.content.substr(20)
-
-        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
-        if (channel != nil):
-            discard channel.sendMessage("Modifing Channel!")
-            discard channel.modifyChannel(ChannelFields(topic: some(modifyTopic)))
-    elif (event.message.content.startsWith("?deleteChannel")):
-        let channelID = getIDFromJson(event.message.content.substr(15))
-        var channel: Channel = event.shard.client.cache.getChannel(channelID)
-        
-        if (channel != nil):
-            discard channel.sendMessage("Deleting Channel!")
-            discard channel.deleteChannel()
-            discard channel.sendMessage("Deleted Channel!")
-    elif (event.message.content.startsWith("?getMessages")):
-        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
-        if (channel != nil):
-            discard channel.getMessages(MessagesGetRequest(limit: some(15), before: some(event.message.id)))
-    elif (event.message.content.startsWith("?bulkDeleteMessages")):
-        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
-        if (channel != nil):
-            var amount: int = 25
-            if (event.message.content.len > 19):
-                amount = parseIntEasy(event.message.content.substr(20))
-            let messages = channel.getMessages(MessagesGetRequest(limit: some(amount), before: some(event.message.id)))
-            discard channel.bulkDeleteMessages(messages)
-    elif (event.message.content.startsWith("?reactToMessage")):
-        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
-        if (channel != nil):
-            let emojis = @[newEmoji("⏮️"), newEmoji("⬅️"), newEmoji("⏹️"), newEmoji("➡️"), newEmoji("⏭️")]
-            for emoji in emojis:
-                discard event.message.addReaction(emoji)
-    elif (event.message.content.startsWith("?testEmbed")):
-        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
-        if (channel != nil):
-            var embed = Embed()
-            embed.setTitle("This embed is being sent from Nimcord!")
-            embed.setDescription("Nimcord was developed in about a week of actual work so there will likely be issues.")
-            embed.addField("Title", "value")
-            embed.addField("Inline-0", "This is an inline field 0", true)
-            embed.addField("Inline-1", "This is an inline field 1", true)
-            embed.setColor(0xffb900)
-            discard channel.sendMessage("", false, embed)
-    elif (event.message.content.startsWith("?sendFile")):
-        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
-        if (channel != nil):
-            let filePath = event.message.content.substr(10)
-
-            let splitFile = splitFile(filePath)
-            let fileName = splitFile.name & splitFile.ext
-
-            let file = DiscordFile(filePath: filePath, fileName: fileName)
-            discard channel.sendMessage("", false, nil, @[file])
-    elif (event.message.content.startsWith("?sendImage")):
-        var channel: Channel = event.message.getMessageChannel(event.shard.client.cache)
-        if (channel != nil):
-            let filePath = event.message.content.substr(11)
-
-            let splitFile = splitFile(filePath)
-            let fileName = splitFile.name & splitFile.ext
-
-            let file = DiscordFile(filePath: filePath, fileName: fileName)
-
-            var embed = Embed()
-            embed.setTitle("Image attachment test.")
-            embed.setImage("attachment://" & fileName)
-            discard channel.sendMessage("", false, embed, @[file])
+    # Register commands. You don't need to register them in EventReady.
+    registerCommand(pingCommand)
+    registerCommand(modifyChannelTopicCommand)
+    registerCommand(deleteChannelCommand)
+    registerCommand(bulkDeleteMessagesCommand)
+    registerCommand(reactToMessageCommand)
+    registerCommand(testEmbedCommand)
+    registerCommand(sendFileCommand)
+    registerCommand(sendImageCommand)
 )
 
 waitFor bot.startConnection()

@@ -1,6 +1,7 @@
 import eventhandler, json, tables, message, emoji, user, member, role
 import guild, channel, nimcordutils, httpClient, strformat, cache
-import asyncdispatch, clientobjects, discordobject, presence
+import sequtils, asyncdispatch, clientobjects, discordobject, presence
+import commandsystem
 
 proc readyEvent(shard: Shard, json: JsonNode) =
     var readyEvent = ReadyEvent(shard: shard, readyPayload: json, name: $EventType.evtReady)
@@ -275,6 +276,9 @@ proc messageCreateEvent(shard: Shard, json: JsonNode) =
     shard.client.cache.messages[msg.id] = msg
 
     let messageCreateEvnt = MessageCreateEvent(shard: shard, message: msg, name: $EventType.evtMessageCreate)
+
+
+    shard.client.fireCommand(msg) # Fire a command
     dispatchEvent(messageCreateEvnt)
 
 proc messageUpdateEvent(shard: Shard, json: JsonNode) =

@@ -247,7 +247,7 @@ proc updateClientPresence*(shard: Shard, presence: Presence) {.async.} =
 
     await shard.sendGatewayRequest(jsonPayload)
 
-proc newDiscordClient*(tkn: string): DiscordClient =
+proc newDiscordClient*(tkn: string, commandPrefix: string): DiscordClient =
     ## Create a DiscordClient using a token.
     ## 
     ## Sets globalDiscordClient to the newly created client.
@@ -256,4 +256,4 @@ proc newDiscordClient*(tkn: string): DiscordClient =
     var cac: Cache
     new(cac)
 
-    result = DiscordClient(token: tkn, cache: cac)
+    result = DiscordClient(token: tkn, cache: cac, commandPrefix: commandPrefix)

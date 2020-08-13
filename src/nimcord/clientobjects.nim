@@ -9,6 +9,7 @@ type
         shards*: seq[Shard]
         shardCount*: int
         endpoint*: string
+        commandPrefix*: string
 
     Shard* = ref object
         id*: int
