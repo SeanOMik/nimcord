@@ -13,13 +13,15 @@ type
         avatar*: string ## The user's avatar hash.
         bot*: bool ## Whether the user belongs to an OAuth2 application.
         system*: bool ## Whether the user is an Official Discord System user (part of the urgent message system).
-        mfaEnabled*: bool ## Whether the user has two factor enabled on their account	.
-        locale*: string ## The user's chosen language option .
-        verified*: bool ## Whether the email on this account has been verified.
-        email*: string ## The user's email.
         flags*: int ## The flags on a user's account.
         premiumType*: NitroSubscription ## The type of Nitro subscription on a user's account.
         publicFlags*: int ## The public flags on a user's account.
+
+    ClientUser* = ref object of User
+        mfaEnabled*: bool ## Whether the user has two factor authentication enabled on their account.
+        locale*: string ## The user's chosen language option.
+        verified*: bool ## Whether or not the current user has a verified email.
+        email*: string ## The current user's email
 
 proc newUser*(user: JsonNode): User {.inline.} =
     return User(
@@ -29,11 +31,24 @@ proc newUser*(user: JsonNode): User {.inline.} =
         avatar: user["avatar"].getStr(),
         bot: user{"bot"}.getBool(),
         system: user{"system"}.getBool(),
-        mfaEnabled: user{"mfa_enabled"}.getBool(),
-        locale: user{"locale"}.getStr(),
-        verified: user{"verified"}.getBool(),
-        email: user{"email"}.getStr(),
         flags: user{"flags"}.getInt(),
         premiumType: NitroSubscription(user{"premium_type"}.getInt()),
         publicFlags: user{"public_flags"}.getInt()
+    )
+
+proc newClientUser*(clientUser: JsonNode): ClientUser {.inline.} =
+    return ClientUser(
+        id: getIDFromJson(clientUser["id"].getStr()),
+        username: clientUser["username"].getStr(),
+        discriminator: cushort(parseIntEasy(clientUser["discriminator"].getStr())),
+        avatar: clientUser["avatar"].getStr(),
+        bot: clientUser{"bot"}.getBool(),
+        system: clientUser{"system"}.getBool(),
+        mfaEnabled: clientUser{"mfa_enabled"}.getBool(),
+        locale: clientUser{"locale"}.getStr(),
+        verified: clientUser{"verified"}.getBool(),
+        email: clientUser{"email"}.getStr(),
+        flags: clientUser{"flags"}.getInt(),
+        premiumType: NitroSubscription(clientUser{"premium_type"}.getInt()),
+        publicFlags: clientUser{"public_flags"}.getInt()
     )
