@@ -67,42 +67,42 @@ type
 
     Guild* = ref object of DiscordObject
         ## Discord Guild object
-        name*: string
-        icon*: string
-        splash*: string
-        discoverySplash*: string
-        owner*: bool
-        ownerID: Snowflake
-        permissions*: Permissions
-        region*: string
-        afkChannelID*: Snowflake
-        afkTimeout*: int
-        verificationLevel*: VerificationLevel
-        defaultMessageNotifications*: MessageNotificationsLevel
-        explicitContentFilter*: ExplicitContentFilterLevel
-        roles*: seq[Role]
-        emojis*: seq[Emoji]
-        features*: seq[string]
-        mfaLevel*: MFALevel
-        applicationID*: Snowflake
+        name*: string ## The name of the current guild
+        icon*: string ## The hash of the current guild's icon
+        splash*: string ## The hash of the current guild's splash
+        discoverySplash*: string 
+        owner*: bool ## Whether or not the current user is the owner of the current guild
+        ownerID: Snowflake ## The snowflake id of the current guild's owner
+        permissions*: Permissions 
+        region*: string ## The region of the current guild
+        afkChannelID*: Snowflake ## The afk voice channel of the current guild
+        afkTimeout*: int ## The afk timeout of the current guild
+        verificationLevel*: VerificationLevel ## The verification level of the current guild
+        defaultMessageNotifications*: MessageNotificationsLevel ## The message notification level of the current guild
+        explicitContentFilter*: ExplicitContentFilterLevel ## The explicit content filter level of the current guild
+        roles*: seq[Role] ## The role list of the current guild
+        emojis*: seq[Emoji] ## The emoji list of the current guild
+        features*: seq[string] 
+        mfaLevel*: MFALevel ## Whether or not ADMIN permission requires multi-factor authentication
+        applicationID*: Snowflake 
         widgetEnabled*: bool
         widgetChannelID*: Snowflake
-        systemChannelID*: Snowflake
+        systemChannelID*: Snowflake ## The system channel id of the current guild
         systemChannelFlags*: int
         rulesChannelID*: Snowflake
         joinedAt*: string
         large*: bool
-        unavailable*: bool
-        memberCount*: int
-        voiceStates*: seq[VoiceState]
-        members*: seq[GuildMember]
-        channels*: seq[Channel]
-        #presences*: seq[Presence]
-        maxPresences*: int
-        maxMembers*: int
-        vanityUrlCode*: string
+        unavailable*: bool ## Whether or not the current guild is unavailable 
+        memberCount*: int ## The approximate membercount of the current guild (sent by discord)
+        voiceStates*: seq[VoiceState] 
+        members*: seq[GuildMember] ## The member list of the current guild 
+        channels*: seq[Channel] ## The channel list of the current guild
+        #presences*: seq[Presence] 
+        maxPresences*: int ## The maximum amount of presences in the current guild
+        maxMembers*: int ## The maximum amount of members in the current guild?
+        vanityUrlCode*: string ## The vanity invite for the current guild (ex: https://discord.gg/discord-api)
         description*: string
-        banner*: string
+        banner*: string ## The hash code of the current guild
         premiumTier*: PremiumTier
         premiumSubscriptionCount*: int
         preferredLocale*: string
@@ -125,8 +125,8 @@ type
 
     GuildBan* = ref object
         ## A guild ban.
-        reason*: string
-        user*: User
+        reason*: string ## The reason the user was banned
+        user*: User ## The user object that was banned
 
     VoiceRegion* = ref object
         ## Voice region.
