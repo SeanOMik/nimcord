@@ -17,3 +17,4 @@ nim doc -o:docs/Permission.html src/nimcord/permission.nim
 nim doc -o:docs/Presence.html src/nimcord/presence.nim
 nim doc -o:docs/Role.html src/nimcord/role.nim
 nim doc -o:docs/User.html src/nimcord/user.nim
+nim doc -o:docs/User.html src/nimcord/commandsystem.nim
