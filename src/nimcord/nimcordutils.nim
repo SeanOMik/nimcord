@@ -1,5 +1,12 @@
-import parseutils, json, httpClient, strformat, tables, times, asyncdispatch
+import parseutils, json, httpClient, strformat, tables, times, asyncdispatch, strutils
 from discordobject import Snowflake
+
+type ImageType* = enum
+    imgTypeAuto = 0,
+    imgTypeWebp = 1,
+    imgTypePng = 2,
+    imgTypeJpeg = 3,
+    imgTypeGif = 4
 
 proc getIDFromJson*(str: string): uint64 =
     var num: uint64
@@ -17,11 +24,21 @@ proc endpoint*(url: string): string =
 var globalToken*: string
 
 proc defaultHeaders*(added: HttpHeaders = newHttpHeaders()): HttpHeaders = 
-    # added.add("Authorization", fmt("Bot {globalToken}"))
-    added.add("Authorization", fmt("{globalToken}"))
+    added.add("Authorization", fmt("Bot {globalToken}"))
     added.add("User-Agent", "NimCord (https://github.com/SeanOMik/nimcord, v0.0.0)")
     added.add("X-RateLimit-Precision", "millisecond")
     return added
+
+proc splitAvatarHash*(hash: string): array[2, uint64] = 
+    var first: uint64
+    discard parseBiggestUInt(hash.substr(0, 16), first)
+    var second: uint64
+    discard parseBiggestUInt(hash.substr(0, 16), first)
+
+    return [first, second]
+
+proc combineAvatarHash*(hash: array[2, uint64]): string =
+    return (BiggestInt hash[0]).toHex(16) & (BiggestInt hash[1]).toHex(16)
 
 type 
     RateLimitBucketType* = enum

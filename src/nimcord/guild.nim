@@ -1,6 +1,6 @@
 import json, discordobject, channel, member, options, nimcordutils, emoji 
 import role, permission, httpcore, strformat, image, asyncdispatch, user
-import permission, presence, tables
+import permission, presence, tables, strutils
 
 type 
     VerificationLevel* = enum
@@ -68,9 +68,10 @@ type
     Guild* = ref object of DiscordObject
         ## Discord Guild object
         name*: string ## The name of the current guild
-        icon*: string ## The hash of the current guild's icon
-        splash*: string ## The hash of the current guild's splash
-        discoverySplash*: string 
+        iconRaw: array[2, uint64] ## The split hash for the 128bit hexadeximal icon.
+        isIconGif: bool ## Wether the avatar is a gif.
+        splashRaw: array[2, uint64] ## The split hash for the 128bit hexadeximal splash.
+        discoverySplashRaw: array[2, uint64] ## The split hash for the 128bit hexadeximal discovery splash.
         owner*: bool ## Whether or not the current user is the owner of the current guild
         ownerID: Snowflake ## The snowflake id of the current guild's owner
         permissions*: Permissions 
@@ -102,7 +103,7 @@ type
         maxMembers*: int ## The maximum amount of members in the current guild?
         vanityUrlCode*: string ## The vanity invite for the current guild (ex: https://discord.gg/discord-api)
         description*: string
-        banner*: string ## The hash code of the current guild
+        bannerRaw: array[2, uint64] ## The split hash for the 128bit hexadeximal banner.
         premiumTier*: PremiumTier
         premiumSubscriptionCount*: int
         preferredLocale*: string
@@ -175,9 +176,8 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
     var g = Guild(
         id: getIDFromJson(json["id"].getStr()),
         name: json["name"].getStr(),
-        icon: json["icon"].getStr(),
-        splash: json["splash"].getStr(),
-        discoverySplash: json["discovery_splash"].getStr(),
+        splashRaw: splitAvatarHash(json["splash"].getStr()), # No need to remove prefixed "a_", can't be animated.
+        discoverySplashRaw: splitAvatarHash(json["discovery_splash"].getStr()), # No need to remove prefixed "a_", can't be animated.
         ownerID: getIDFromJson(json["owner_id"].getStr()),
         region: json["region"].getStr(),
         afkChannelID: getIDFromJson(json["afk_channel_id"].getStr()),
@@ -192,13 +192,23 @@ proc newGuild*(json: JsonNode): Guild {.inline.} =
         rulesChannelID: getIDFromJson(json["rules_channel_id"].getStr()),
         vanityUrlCode: json["vanity_url_code"].getStr(),
         description: json["description"].getStr(),
-        banner: json["banner"].getStr(),
+        bannerRaw: splitAvatarHash(json["banner"].getStr()), # No need to remove prefixed "a_", can't be animated.
         premiumTier: PremiumTier(json["premium_tier"].getInt()),
         preferredLocale: json["preferred_locale"].getStr(),
         publicUpdatesChannelID: getIDFromJson(json["public_updates_channel_id"].getStr())
     )
 
     # Parse all non guaranteed fields
+    if json.contains("icon"):
+        let iconStr = json["icon"].getStr()
+
+        # If the icon is animated we need to remove the prefixed "a_"
+        if iconStr.startsWith("a_"):
+            g.isIconGif = true
+            g.iconRaw = splitAvatarHash(iconStr.substr(2))
+        else:
+            g.isIconGif = false
+            g.iconRaw = splitAvatarHash(iconStr)
     if json.contains("owner"):
         g.owner = json["owner"].getBool()
     if json.contains("permissions"):
@@ -916,3 +926,96 @@ proc getGuildMemberRoles*(guild: Guild, member: GuildMember): seq[Role] =
     for role in guild.roles:
         if member.roles.contains(role.id):
             result.add(role)
+
+proc getGuildIconURL*(guild: Guild, imageType: ImageType = ImageType.imgTypeAuto): string = 
+    ## Get the URL for the guild's icon.
+    result = "https://cdn.discordapp.com/icons/" & $guild.id & "/" & $combineAvatarHash(guild.iconRaw)
+
+    # If we're finding the image type automaticly, then we need to
+    # check if the avatar is a gif.
+    var tmp = imageType
+    if (imageType == ImageType.imgTypeAuto):
+        if guild.isIconGif:
+            tmp = ImageType.imgTypeGif
+        else:
+            tmp = ImageType.imgTypePng
+
+    case tmp:
+        of ImageType.imgTypeGif:
+            result &= ".gif"
+            discard
+        of ImageType.imgTypeJpeg:
+            result &= ".jpeg"
+            discard
+        of ImageType.imgTypePng:
+            result &= ".png"
+            discard
+        of ImageType.imgTypeWebp:
+            result &= ".webp"
+            discard
+        of ImageType.imgTypeAuto:
+            result &= ".png" # Just incase
+            discard
+    
+proc getGuildSplashURL*(guild: Guild, imageType: ImageType = ImageType.imgTypePng): string = 
+    ## Get the URL for the guild's splash.
+    result = "https://cdn.discordapp.com/splashes/" & $guild.id & "/" & $combineAvatarHash(guild.splashRaw)
+
+    case imageType:
+        of ImageType.imgTypeGif:
+            result &= ".png" # The guild's splash can't be a gif.
+            discard
+        of ImageType.imgTypeJpeg:
+            result &= ".jpeg"
+            discard
+        of ImageType.imgTypePng:
+            result &= ".png"
+            discard
+        of ImageType.imgTypeWebp:
+            result &= ".webp"
+            discard
+        of ImageType.imgTypeAuto:
+            result &= ".png"
+            discard
+
+proc getGuildDiscoverySplashURL*(guild: Guild, imageType: ImageType = ImageType.imgTypePng): string = 
+    ## Get the URL for the guild's discovery splash.
+    result = "https://cdn.discordapp.com/discovery-splashes/" & $guild.id & "/" & $combineAvatarHash(guild.discoverySplashRaw)
+
+    case imageType:
+        of ImageType.imgTypeGif:
+            result &= ".png" # The guild's discovery splash can't be a gif.
+            discard
+        of ImageType.imgTypeJpeg:
+            result &= ".jpeg"
+            discard
+        of ImageType.imgTypePng:
+            result &= ".png"
+            discard
+        of ImageType.imgTypeWebp:
+            result &= ".webp"
+            discard
+        of ImageType.imgTypeAuto:
+            result &= ".png" # Just incase
+            discard
+
+proc getGuildBannerURL*(guild: Guild, imageType: ImageType = ImageType.imgTypePng): string = 
+    ## Get the URL for the guild's banner.
+    result = "https://cdn.discordapp.com/banners/" & $guild.id & "/" & $combineAvatarHash(guild.bannerRaw)
+
+    case imageType:
+        of ImageType.imgTypeGif:
+            result &= ".png" # The guild's banner can't be a gif.
+            discard
+        of ImageType.imgTypeJpeg:
+            result &= ".jpeg"
+            discard
+        of ImageType.imgTypePng:
+            result &= ".png"
+            discard
+        of ImageType.imgTypeWebp:
+            result &= ".webp"
+            discard
+        of ImageType.imgTypeAuto:
+            result &= ".png" # Just incase
+            discard

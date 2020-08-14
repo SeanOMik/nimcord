@@ -22,7 +22,7 @@ proc getIdentifyPacket(shard: Shard): JsonNode
 proc handleGatewayDisconnect(shard: Shard, error: string) {.async.}
 proc handleHeartbeat(shard: Shard) {.async.}
 proc handleWebsocketPacket(shard: Shard) {.async.} 
-proc newDiscordClient*(tkn: string): DiscordClient
+proc newDiscordClient*(tkn: string, commandPrefix: string): DiscordClient
 proc newShard(shardID: int, client: DiscordClient): Shard
 proc reconnectShard(shard: Shard) {.async.}
 proc sendGatewayRequest*(shard: Shard, request: JsonNode, msg: string = "") {.async.}

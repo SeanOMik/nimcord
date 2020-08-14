@@ -96,3 +96,21 @@ proc deleteEmoji*(emoji: Emoji) {.async.} =
     ## Delete the given emoji. Requires the `MANAGE_EMOJIS` permission.
     discard sendRequest(endpoint(fmt("/guilds/{emoji.guildID}/emojis/{emoji.id}")), HttpDelete,
         defaultHeaders(), emoji.guildID, RateLimitBucketType.guild)
+
+proc getEmojiURL*(emoji: Emoji, imageType: ImageType = ImageType.imgTypeAuto): string = 
+    ## Get the URL for the emoji's.
+    result = "https://cdn.discordapp.com/emojis/" & $emoji.id
+
+    # Choose the type of image automaticly.
+    var tmp = imageType
+    if emoji.animated:
+        tmp = ImageType.imgTypeGif
+    else:
+        tmp = ImageType.imgTypePng
+
+    case tmp:
+        of ImageType.imgTypeGif:
+            result &= ".gif"
+            discard
+        else: # The only other possible image type is png
+            result &= ".png"
