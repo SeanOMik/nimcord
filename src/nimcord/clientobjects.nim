@@ -10,6 +10,7 @@ type
         shardCount*: int
         endpoint*: string
         commandPrefix*: string
+        instanceID*: uint8
 
     Shard* = ref object
         id*: int

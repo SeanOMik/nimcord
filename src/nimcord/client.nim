@@ -227,25 +227,31 @@ proc startConnection*(client: DiscordClient, shardAmount: int = 1) {.async.} =
         while true:
             if not shard.reconnecting:
                 poll()
-
-        #[ client.ws = await newAsyncWebsocketClient(url[6..url.high], Port 443,
-            path = "/v=6&encoding=json", true)
-
-        asyncCheck client.handleWebsocketPacket()
-        # Now just wait. Dont poll for new events while we're reconnecting
-        while true:
-            if not client.reconnecting:
-                poll() ]#
     else:
         raise newException(IOError, "Failed to get gateway url, token may of been incorrect!")
 
 proc updateClientPresence*(shard: Shard, presence: Presence) {.async.} =
+    ## Start a bot's presence.
+    ## 
+    ## Examples:
+    ## 
+    ## .. code-block:: nim 
+    ##   let presence = newPresence("with Nimcord", activityTypeGame, clientStatusIdle, false)
+    ##   asyncCheck event.shard.updateClientPresence(presence) ## Will read "Playing with Nimcord"
     let jsonPayload = %* {
         "op": ord(opPresenceUpdate),
         "d": presence.presenceToJson()
     }
 
     await shard.sendGatewayRequest(jsonPayload)
+
+# DiscordClient stored instances:
+let clientInstances = newTable[uint8, DiscordClient]()
+var nextInstanceId = 0
+
+proc getClientInstance*(instanceID: uint8): DiscordClient =
+    ## Get a client instance with instance id. Mainly used internally.
+    return clientInstances[instanceID]
 
 proc newDiscordClient*(tkn: string, commandPrefix: string): DiscordClient =
     ## Create a DiscordClient using a token.
@@ -256,4 +262,6 @@ proc newDiscordClient*(tkn: string, commandPrefix: string): DiscordClient =
     var cac: Cache
     new(cac)
 
-    result = DiscordClient(token: tkn, cache: cac, commandPrefix: commandPrefix)
+    result = DiscordClient(token: tkn, cache: cac, commandPrefix: commandPrefix, instanceID: nextInstanceId)
+    clientInstances.add(nextInstanceId, result)
+    nextInstanceId++
