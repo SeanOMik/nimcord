@@ -46,5 +46,6 @@ You can view examples in the [examples](examples) directory.
   - [ ] Guild
   - [ ] Misc.
 - [x] Sharding.
+- [ ] Deglobalize. (Remove global client instance).
 - [ ] Audit log.
 - [ ] Voice.
