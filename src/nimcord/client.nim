@@ -1,6 +1,5 @@
 import websocket, asyncdispatch, json, httpClient, eventdispatcher, strformat
-import nimcordutils, cache, clientobjects
-import strutils, options, presence
+import nimcordutils, cache, clientobjects, strutils, options, presence, log
 
 type
     DiscordOpCode = enum
@@ -22,7 +21,7 @@ proc getIdentifyPacket(shard: Shard): JsonNode
 proc handleGatewayDisconnect(shard: Shard, error: string) {.async.}
 proc handleHeartbeat(shard: Shard) {.async.}
 proc handleWebsocketPacket(shard: Shard) {.async.} 
-proc newDiscordClient*(tkn: string, commandPrefix: string): DiscordClient
+proc newDiscordClient*(tkn: string, commandPrefix: string, log: Log = newLog(ord(LoggerFlags.loggerFlagWarnSeverity) or ord(LoggerFlags.loggerFlagInfoSeverity) or ord(LoggerFlags.loggerFlagErrorSeverity))): DiscordClient
 proc newShard(shardID: int, client: DiscordClient): Shard
 proc reconnectShard(shard: Shard) {.async.}
 proc sendGatewayRequest*(shard: Shard, request: JsonNode, msg: string = "") {.async.}
@@ -33,11 +32,11 @@ proc sendGatewayRequest*(shard: Shard, request: JsonNode, msg: string = "") {.as
     ## Send a gateway request.
     ## Don't use this unless you know what you're doing!
     if msg.len == 0:
-        echo "Sending gateway payload: ", request
+        shard.client.log.debug("[SHARD " & $shard.id & "] Sending gateway payload: " & $request)
     else:
-        echo msg
+        shard.client.log.debug(msg)
 
-    await shard.ws.sendText($request)
+    await shard.ws.sendText("[SHARD " & $shard.id & "] " & $request)
 
 proc handleHeartbeat(shard: Shard) {.async.} =
     while true:
@@ -50,7 +49,7 @@ proc handleHeartbeat(shard: Shard) {.async.} =
         await shard.sendGatewayRequest(heartbeatPayload, fmt("Sending heartbeat payload: {$heartbeatPayload}"))
         shard.heartbeatAcked = true
 
-        echo "Waiting ", shard.heartbeatInterval, " ms until next heartbeat..."
+        shard.client.log.debug("[SHARD " & $shard.id & "] Waiting " & $shard.heartbeatInterval & " ms until next heartbeat...")
         await sleepAsync(shard.heartbeatInterval)
 
 proc getIdentifyPacket(shard: Shard): JsonNode =
@@ -70,11 +69,11 @@ proc getIdentifyPacket(shard: Shard): JsonNode =
         result.add("shard", %*[shard.id, shard.client.shardCount])
 
 proc closeConnection*(shard: Shard, code: int = 1000) {.async.} =
-    echo "Disconnecting with code: ", code
+    shard.client.log.warn("[SHARD " & $shard.id & "] Disconnecting with code: " & $code)
     await shard.ws.close(code)
 
 proc reconnectShard(shard: Shard) {.async.} =
-    echo "Reconnecting..."
+    shard.client.log.info("[SHARD " & $shard.id & "] Reconnecting...")
     shard.reconnecting = true
     await shard.ws.close(1000)
 
@@ -89,7 +88,7 @@ proc reconnectShard(shard: Shard) {.async.} =
 proc handleGatewayDisconnect(shard: Shard, error: string) {.async.} =
     let disconnectData = extractCloseData(error)
 
-    echo "Discord gateway disconnected! Error code: ", disconnectData.code, ", msg: ", disconnectData.reason
+    shard.client.log.warn("[SHARD " & $shard.id & "] Discord gateway disconnected! Error code: " & $disconnectData.code & ", msg: " & disconnectData.reason)
 
     shard.heartbeatAcked = false
     
@@ -98,12 +97,12 @@ proc handleGatewayDisconnect(shard: Shard, error: string) {.async.} =
 
     # 4003, 4004, 4005, 4007, 4010, 4011, 4012, 4013 are not reconnectable.
     if  (c >= 4003 and c <= 4005) or c == 4007 or (c >= 4010 and c <= 4013):
-        echo "The Discord gateway sent a disconnect code that we cannot reconnect to."
+        shard.client.log.error("[SHARD " & $shard.id & "] The Discord gateway sent a disconnect code that we cannot reconnect to.")
     else:
         if not shard.reconnecting:
             waitFor shard.reconnectShard()
         else:
-            echo "Gateway is cannot reconnect due to already reconnecting..."
+            shard.client.log.debug("[SHARD " & $shard.id & "] Gateway cannot reconnect due to already reconnecting...")
             
 #TODO: Reconnecting may be done, just needs testing.
 proc handleWebsocketPacket(shard: Shard) {.async.} = 
@@ -111,7 +110,7 @@ proc handleWebsocketPacket(shard: Shard) {.async.} =
         var packet: tuple[opcode: Opcode, data: string]
 
         packet = await shard.ws.readData()
-        echo "[SHARD ", $shard.id, "] Received gateway payload: ", packet.data
+        shard.client.log.debug("[SHARD " & $shard.id & "] Received gateway payload: " & $packet.data)
 
         if packet.opcode == Opcode.Close:
             await shard.handleGatewayDisconnect(packet.data)
@@ -122,7 +121,7 @@ proc handleWebsocketPacket(shard: Shard) {.async.} =
         try:
             json = parseJson(packet.data)
         except:
-            echo "Failed to parse websocket payload: ", packet.data
+            shard.client.log.error("[SHARD " & $shard.id & "] Failed to parse websocket payload: " & $packet.data)
             continue
 
         if json.contains("s"):
@@ -131,7 +130,7 @@ proc handleWebsocketPacket(shard: Shard) {.async.} =
         case json["op"].getInt()
             of ord(DiscordOpCode.opHello):
                 if shard.reconnecting:
-                    echo "Reconnected!"
+                    shard.client.log.info("[SHARD " & $shard.id & "Reconnected!")
                     shard.reconnecting = false
 
                     let resume = %* {
@@ -189,7 +188,7 @@ proc startConnection*(client: DiscordClient, shardAmount: int = 1) {.async.} =
     ##   tokenStream.close()
     ## 
     ##   var bot = newDiscordClient(tkn)
-    echo "Connecting..."
+    client.log.info("[CLIENT] Connecting...")
 
     # let urlResult = sendRequest(endpoint("/gateway/bot"), HttpMethod.HttpGet, defaultHeaders())
     let urlResult = sendRequest(endpoint("/gateway"), HttpMethod.HttpGet, defaultHeaders())
@@ -223,7 +222,7 @@ proc startConnection*(client: DiscordClient, shardAmount: int = 1) {.async.} =
 
         asyncCheck shard.handleWebsocketPacket()
 
-        # Now just wait. Dont poll while we're reconnecting
+        # Just wait. Don't poll while we're reconnecting
         while true:
             if not shard.reconnecting:
                 poll()
@@ -253,15 +252,17 @@ proc getClientInstance*(instanceID: uint8): DiscordClient =
     ## Get a client instance with instance id. Mainly used internally.
     return clientInstances[instanceID]
 
-proc newDiscordClient*(tkn: string, commandPrefix: string): DiscordClient =
+proc newDiscordClient*(tkn: string, commandPrefix: string, log: Log = newLog(ord(LoggerFlags.loggerFlagWarnSeverity) or ord(LoggerFlags.loggerFlagInfoSeverity) or ord(LoggerFlags.loggerFlagErrorSeverity))): DiscordClient =
     ## Create a DiscordClient using a token.
     ## 
-    ## Sets globalDiscordClient to the newly created client.
+    ## Sets globalToken to the newly created client's token.
     globalToken = tkn
+    globalLog = log
 
     var cac: Cache
     new(cac)
 
+    result = DiscordClient(token: tkn, cache: cac, commandPrefix: commandPrefix, log: log)
     result = DiscordClient(token: tkn, cache: cac, commandPrefix: commandPrefix, instanceID: nextInstanceId)
     clientInstances.add(nextInstanceId, result)
     nextInstanceId++

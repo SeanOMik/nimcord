@@ -245,29 +245,22 @@ proc registerEventListener*(event: EventType, listener: proc(event: BaseEvent)) 
     ## .. code-block:: nim
     ##   registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
     ##      let event = ReadyEvent(bEvt)
-    ##      bot.clientUser = event.clientUser
     ##   
-    ##      echo "Ready! (v", nimcordMajor, ".", nimcordMinor, ".", nimcordMicro, ")"
-    ##      echo "Logged in as: ", bot.clientUser.username, "#", bot.clientUser.discriminator
-    ##      echo "ID: ", bot.clientUser.id
-    ##      echo "--------------------"
+    ##      event.shard.client.log.info("Ready!")
+    ##      event.shard.client.log.info("Logged in as: " & bot.clientUser.username & "#" & $bot.clientUser.discriminator)
+    ##      event.shard.client.log.info("ID: " & $bot.clientUser.id)
+    ##      event.shard.client.log.info("--------------------")
     ##   )
     if eventListeners.hasKey($event):
         eventListeners[$event].add(cast[proc(event: BaseEvent)](listener))
-
-        echo "Added other event listener: ", $event
     else:
         let tmp = @[listener]
         eventListeners.add($event, tmp)
-
-        echo "Added new event listener: ", $event
 
 proc dispatchEvent*[T: BaseEvent](event: T) = 
     ## Dispatches an event so something can listen to it.
     if eventListeners.hasKey(event.name):
         let listeners = eventListeners[event.name]
-        echo "Dispatching event: ", event.name
+        
         for index, eventListener in listeners.pairs:
             eventListener(event)
-    else:
-        echo "No event listeners for event: ", event.name

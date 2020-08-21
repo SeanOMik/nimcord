@@ -21,7 +21,7 @@ type
         logSevDebug = 3
 
 proc newLog*(flags: int, filePath: string = ""): Log =
-    ## Create a new file. Colors in a file is printed as "fgYellow".
+    ## Create a new log. Colors in a file is printed as "fgYellow".
     var log = Log(flags: flags)
     if filePath.len > 0:
         log.logFile = newFileStream(filePath, fmWrite)
@@ -59,37 +59,36 @@ proc severityToString(sev: LogSeverity): string =
         of LogSeverity.logSevDebug:
             return "DEBUG"
 
-#TODO: Remove colors from file.
-template autoLog(log: Log, sev: LogSeverity, args: varargs[untyped]) =
+proc autoLog(log: Log, sev: LogSeverity, text: string) =
     if log.canLog(sev):
         let timeFormated = getTime().format("[HH:mm:ss]")
         let sevStr = "[" & severityToString(sev) & "]"
 
         let logHeader = timeFormated & " " & sevStr & " "
 
-        terminal.styledEcho(logHeader, args)
+        terminal.styledEcho(logHeader, text)
 
         if log.logFile != nil:
-            log.logFile.writeLine(logHeader, args)
+            log.logFile.writeLine(logHeader, text)
 
-template debug*(log: Log, args: varargs[untyped]) =
+proc debug*(log: Log, text: string) =
     ## Log debug severity. Example output: `[22:34:31] [DEBUG] Test`
-    log.autoLog(logSevDebug, args)
+    log.autoLog(logSevDebug, text)
 
-template warn*(log: Log, args: varargs[untyped]) =
+proc warn*(log: Log, text: string) =
     ## Log warning severity. Example output: `[22:34:31] [WARN] Test`
-    log.autoLog(logSevWarn, args)
+    log.autoLog(logSevWarn, text)
 
-template error*(log: Log, args: varargs[untyped]) =
+proc error*(log: Log, text: string) =
     ## Log error severity. Example output: `[22:34:31] [ERROR] Test`
-    log.autoLog(logSevError, args)
+    log.autoLog(logSevError, text)
 
-template info*(log: Log, args: varargs[untyped]) =
+proc info*(log: Log, text: string) =
     ## Log info severity. Example output: `[22:34:31] [INFO] Test`
-    log.autoLog(logSevInfo, args)
+    log.autoLog(logSevInfo, text)
 
 proc closeLog*(log: Log) =
     ## Close log file if it was ever open.
     if log.logFile != nil:
-        log.info(fgYellow, "Closing log...")
+        log.info("Closing log...")
         log.logFile.close()

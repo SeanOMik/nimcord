@@ -163,7 +163,8 @@ proc sendMessage*(channel: Channel, content: string, tts: bool = false, embed: E
                 raise newException(IOError, "Failed to open file for sending: " & file.filePath)
         multipart.add("payload_json", $messagePayload, "", "application/json", false)
 
-        echo "Sending POST request, URL: ", endpoint, ", headers: ", client.headers, " payload_json: ", messagePayload
+        # TODO: Send this through the logger:
+        #echo "Sending POST request, URL: ", endpoint, ", headers: ", client.headers, " payload_json: ", messagePayload
 
         waitForRateLimits(channel.id, RateLimitBucketType.channel)
         let response: Response = client.post(endpoint, "", multipart)

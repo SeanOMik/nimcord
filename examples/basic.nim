@@ -4,11 +4,10 @@ var tokenStream = newFileStream("token.txt", fmRead)
 var tkn: string
 if (not isNil(tokenStream)):
     discard tokenStream.readLine(tkn)
-    echo "Read token from the file: ", tkn
 
     tokenStream.close()
 
-var bot = newDiscordClient(tkn, "?")
+var bot = newDiscordClient(tkn, "?", newLog(ord(LoggerFlags.loggerFlagDebugSeverity)))
 
 let pingCommand = Command(name: "ping", commandBody: proc(ctx: CommandContext) = 
     discard ctx.channel.sendMessage("PONG")
@@ -88,7 +87,7 @@ let sendImageCommand = Command(name: "sendImage", commandBody: proc(ctx: Command
 
 # You can even register commands like this:
 registerCommand(Command(name: "ping2", commandBody: proc(ctx: CommandContext) = 
-    discard ctx.channel.sendMessage("PONG3")
+    discard ctx.channel.sendMessage("PONG 2")
 ))
 
 # Listen for the ready event.
@@ -96,12 +95,13 @@ registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
     # Cast the BaseEvent to the ReadyEvent which is what we're listening to.
     let event = ReadyEvent(bEvt) 
 
-    echo "Ready! (v", 0, ".", 0, ".", 1, ")"
-    echo "Logged in as: ", bot.clientUser.username, "#", bot.clientUser.discriminator
-    echo "ID: ", bot.clientUser.id
-    echo "--------------------"
+    event.shard.client.log.info("Ready!")
+    event.shard.client.log.info("Logged in as: " & bot.clientUser.username & "#" & $bot.clientUser.discriminator)
+    event.shard.client.log.info("ID: " & $bot.clientUser.id)
+    event.shard.client.log.info("--------------------")
 
-    let presence = newPresence("with Nimcord", activityTypeGame, clientStatusIdle, false)
+    let presence = newPresence("with Nimcord", ActivityType.activityTypeGame, 
+        ClientStatus.clientStatusIdle, false)
     asyncCheck event.shard.updateClientPresence(presence)
 
     # Register commands. You don't need to register them in EventReady.
