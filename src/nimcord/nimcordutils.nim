@@ -1,4 +1,4 @@
-import parseutils, json, httpClient, strformat, tables, times, asyncdispatch, strutils
+import parseutils, json, httpClient, strformat, tables, times, asyncdispatch, strutils, log
 from discordobject import Snowflake
 
 type ImageType* = enum
@@ -22,6 +22,7 @@ proc endpoint*(url: string): string =
     return fmt("https://discord.com/api/v6{url}")
 
 var globalToken*: string
+var globalLog*: Log
 
 proc defaultHeaders*(added: HttpHeaders = newHttpHeaders()): HttpHeaders = 
     added.add("Authorization", fmt("Bot {globalToken}"))
@@ -87,7 +88,7 @@ proc handleRateLimits*(headers: HttpHeaders, objectID: Snowflake, bucketType: Ra
 
 
 proc handleResponse*(response: Response, objectID: Snowflake, bucketType: RateLimitBucketType): JsonNode =
-    echo fmt("Received requested payload: {response.body}")
+    globalLog.debug(fmt("Received requested payload: {response.body}"))
 
     handleRateLimits(response.headers, objectID, bucketType)
 
@@ -124,7 +125,7 @@ proc waitForRateLimits*(objectID: Snowflake, bucketType: RateLimitBucketType) =
         let millisecondTime: float = rlmt.ratelimitReset * 1000 - epochTime() * 1000
 
         if millisecondTime > 0:
-            echo fmt("Rate limit wait time: {millisecondTime} miliseconds")
+            globalLog.debug(fmt("Rate limit wait time: {millisecondTime} miliseconds"))
             waitFor sleepAsync(millisecondTime)
 
 proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders, objectID: Snowflake = 0, 
@@ -138,7 +139,7 @@ proc sendRequest*(endpoint: string, httpMethod: HttpMethod, headers: HttpHeaders
         strPayload = ""
     else:
         strPayload = $jsonBody
-    echo "Sending ", httpMethod, " request, URL: ", endpoint, ", headers: ", $headers, " body: ", strPayload
+    globalLog.debug("Sending " & $httpMethod & " request, URL: " & endpoint & ", headers: " & $headers & " body: " & strPayload)
 
     waitForRateLimits(objectID, bucketType)
     let response = client.request(endpoint, httpMethod, strPayload)

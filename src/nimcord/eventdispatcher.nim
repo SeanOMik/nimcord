@@ -1,7 +1,7 @@
 import eventhandler, json, tables, message, emoji, user, member, role
 import guild, channel, nimcordutils, httpClient, strformat, cache
 import sequtils, asyncdispatch, clientobjects, discordobject, presence
-import commandsystem
+import commandsystem, log
 
 proc readyEvent(shard: Shard, json: JsonNode) =
     var readyEvent = ReadyEvent(shard: shard, readyPayload: json, name: $EventType.evtReady)
@@ -12,7 +12,7 @@ proc readyEvent(shard: Shard, json: JsonNode) =
     client.headers = newHttpHeaders({"Authorization": fmt("Bot {shard.client.token}"), 
         "User-Agent": "NimCord (https://github.com/SeanOMik/nimcord, v0.0.0)",
         "X-RateLimit-Precision": "millisecond"})
-    echo "Sending GET request, URL: body: {}"
+    shard.client.log.debug("[SHARD " & $shard.id & "] Sending GET request, URL: body: {}")
 
     waitForRateLimits(0, RateLimitBucketType.global)
     var userJson = handleResponse(client.request(endpoint("/users/@me"), HttpGet, ""), 0, RateLimitBucketType.global)
@@ -512,5 +512,5 @@ proc handleDiscordEvent*(shard: Shard, json: JsonNode, eventName: string) {.asyn
         let eventProc: proc(shard: Shard, json: JsonNode) = internalEventTable[eventName]
         eventProc(shard, json)
     else:
-        echo "Failed to find event: ", eventName
+        shard.client.log.error("[SHARD " & $shard.id & "] Failed to find event: " & eventName)
 

@@ -1,4 +1,4 @@
-import websocket, cache, user
+import websocket, cache, user, log
 
 type 
     DiscordClient* = ref object 
@@ -10,6 +10,7 @@ type
         shardCount*: int
         endpoint*: string
         commandPrefix*: string
+        log*: Log
 
     Shard* = ref object
         id*: int

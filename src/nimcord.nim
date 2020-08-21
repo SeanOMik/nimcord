@@ -16,11 +16,11 @@
 import nimcord/[cache, channel, client, clientobjects, discordobject]
 import nimcord/[embed, emoji, eventdispatcher, eventhandler, guild]
 import nimcord/[image, member, message, nimcordutils, permission]
-import nimcord/[presence, role, user, commandsystem]
+import nimcord/[presence, role, user, commandsystem, log]
 
 export cache, channel, client, clientobjects, discordobject
 export embed, emoji, eventdispatcher, eventhandler, guild
 export image, member, message, nimcordutils, permission
-export presence, role, user, commandsystem
+export presence, role, user, commandsystem, log
 
 const NimCordVersion = "v0.0.1"
