@@ -1,5 +1,6 @@
 import websocket, asyncdispatch, json, httpClient, eventdispatcher, strformat
 import nimcordutils, cache, clientobjects, strutils, options, presence, log
+import tables
 
 type
     DiscordOpCode = enum
@@ -23,7 +24,7 @@ proc handleHeartbeat(shard: Shard) {.async.}
 proc handleWebsocketPacket(shard: Shard) {.async.} 
 proc newDiscordClient*(tkn: string, commandPrefix: string, log: Log = newLog(ord(LoggerFlags.loggerFlagWarnSeverity) or ord(LoggerFlags.loggerFlagInfoSeverity) or ord(LoggerFlags.loggerFlagErrorSeverity))): DiscordClient
 proc newShard(shardID: int, client: DiscordClient): Shard
-proc reconnectShard(shard: Shard) {.async.}
+proc reconnectShard*(shard: Shard) {.async.}
 proc sendGatewayRequest*(shard: Shard, request: JsonNode, msg: string = "") {.async.}
 proc startConnection*(client: DiscordClient, shardAmount: int = 1) {.async.}
 proc updateClientPresence*(shard: Shard, presence: Presence) {.async.}
@@ -34,9 +35,9 @@ proc sendGatewayRequest*(shard: Shard, request: JsonNode, msg: string = "") {.as
     if msg.len == 0:
         shard.client.log.debug("[SHARD " & $shard.id & "] Sending gateway payload: " & $request)
     else:
-        shard.client.log.debug(msg)
+        shard.client.log.debug("[SHARD " & $shard.id & "] " & msg)
 
-    await shard.ws.sendText("[SHARD " & $shard.id & "] " & $request)
+    await shard.ws.sendText($request)
 
 proc handleHeartbeat(shard: Shard) {.async.} =
     while true:
@@ -72,12 +73,13 @@ proc closeConnection*(shard: Shard, code: int = 1000) {.async.} =
     shard.client.log.warn("[SHARD " & $shard.id & "] Disconnecting with code: " & $code)
     await shard.ws.close(code)
 
-proc reconnectShard(shard: Shard) {.async.} =
+proc reconnectShard*(shard: Shard) {.async.} =
     shard.client.log.info("[SHARD " & $shard.id & "] Reconnecting...")
     shard.reconnecting = true
-    await shard.ws.close(1000)
 
-    shard.ws = await newAsyncWebsocketClient(shard.client.endpoint[6..shard.client.endpoint.high], Port 443,
+    waitFor shard.ws.close(1000)
+    
+    shard.ws = waitFor newAsyncWebsocketClient(shard.client.endpoint[6..shard.client.endpoint.high], Port 443,
             path = "/v=6&encoding=json", true)
 
     shard.reconnecting = false

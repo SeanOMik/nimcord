@@ -10,14 +10,14 @@ if (not isNil(tokenStream)):
 var bot = newDiscordClient(tkn, "?", newLog(ord(LoggerFlags.loggerFlagDebugSeverity)))
 
 let pingCommand = Command(name: "ping", commandBody: proc(ctx: CommandContext) = 
-    discard ctx.channel.sendMessage("PONG")
+    asyncCheck ctx.channel.sendMessage("PONG")
 )
 
 let modifyChannelTopicCommand = Command(name: "modifyChannelTopic", commandBody: proc(ctx: CommandContext) = 
     let modifyTopic = ctx.message.content.substr(20)
 
-    discard ctx.channel.sendMessage("Modifing Channel!")
-    discard ctx.channel.modifyChannel(ChannelFields(topic: some(modifyTopic)))
+    asyncCheck ctx.channel.sendMessage("Modifing Channel!")
+    asyncCheck ctx.channel.modifyChannel(ChannelFields(topic: some(modifyTopic)))
 )
 
 let deleteChannelCommand = Command(name: "deleteChannel", commandBody: proc(ctx: CommandContext) =
@@ -26,9 +26,9 @@ let deleteChannelCommand = Command(name: "deleteChannel", commandBody: proc(ctx:
     
     # Check if we could find the channel to delete
     if (channel != nil):
-        discard channel.sendMessage("Deleting Channel!")
-        discard channel.deleteChannel()
-        discard ctx.channel.sendMessage("Deleted Channel!")
+        asyncCheck channel.sendMessage("Deleting Channel!")
+        asyncCheck channel.deleteChannel()
+        asyncCheck ctx.channel.sendMessage("Deleted Channel!")
 )
 
 let bulkDeleteMessagesCommand = Command(name: "bulkDeleteMessages", commandBody: proc(ctx: CommandContext) =
@@ -38,16 +38,16 @@ let bulkDeleteMessagesCommand = Command(name: "bulkDeleteMessages", commandBody:
 
     # Get the message to delete, then delete them.
     let messages = ctx.channel.getMessages(MessagesGetRequest(limit: some(amount), before: some(ctx.message.id)))
-    discard ctx.channel.bulkDeleteMessages(messages)
+    asyncCheck ctx.channel.bulkDeleteMessages(messages)
 
     # Delete the message that was used to run this command.
-    discard ctx.message.deleteMessage()
+    asyncCheck ctx.message.deleteMessage()
 )
 
 let reactToMessageCommand = Command(name: "reactToMessage", commandBody: proc(ctx: CommandContext) =
     let emojis = @[newEmoji("⏮️"), newEmoji("⬅️"), newEmoji("⏹️"), newEmoji("➡️"), newEmoji("⏭️")]
     for emoji in emojis:
-        discard ctx.message.addReaction(emoji)
+        asyncCheck ctx.message.addReaction(emoji)
 )
 
 let testEmbedCommand = Command(name: "testEmbed", commandBody: proc(ctx: CommandContext) =
@@ -58,7 +58,7 @@ let testEmbedCommand = Command(name: "testEmbed", commandBody: proc(ctx: Command
     embed.addField("Inline-0", "This is an inline field 0", true)
     embed.addField("Inline-1", "This is an inline field 1", true)
     embed.setColor(0xffb900)
-    discard ctx.channel.sendMessage("", false, embed)
+    asyncCheck ctx.channel.sendMessage("", false, embed)
 )
 
 let sendFileCommand = Command(name: "sendFile", commandBody: proc(ctx: CommandContext) =
@@ -68,7 +68,7 @@ let sendFileCommand = Command(name: "sendFile", commandBody: proc(ctx: CommandCo
     let fileName = splitFile.name & splitFile.ext
 
     let file = DiscordFile(filePath: filePath, fileName: fileName)
-    discard ctx.channel.sendMessage("", false, nil, @[file])
+    asyncCheck ctx.channel.sendMessage("", false, nil, @[file])
 )
 
 let sendImageCommand = Command(name: "sendImage", commandBody: proc(ctx: CommandContext) =
@@ -82,12 +82,17 @@ let sendImageCommand = Command(name: "sendImage", commandBody: proc(ctx: Command
     var embed = Embed()
     embed.setTitle("Image attachment test.")
     embed.setImage("attachment://" & fileName)
-    discard ctx.channel.sendMessage("", false, embed, @[file])
+    asyncCheck ctx.channel.sendMessage("", false, embed, @[file])
 )
 
 # You can even register commands like this:
 registerCommand(Command(name: "ping2", commandBody: proc(ctx: CommandContext) = 
-    discard ctx.channel.sendMessage("PONG 2")
+    asyncCheck ctx.channel.sendMessage("PONG 2")
+))
+
+registerCommand(Command(name: "reconnect", commandBody: proc(ctx: CommandContext) = 
+    asyncCheck ctx.channel.sendMessage("Reconnecting...")
+    asyncCheck ctx.client.shards[0].reconnectShard()
 ))
 
 # Listen for the ready event.
