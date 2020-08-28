@@ -246,7 +246,7 @@ proc updateClientPresence*(shard: Shard, presence: Presence) {.async.} =
 
 # DiscordClient stored instances:
 let clientInstances = newTable[uint8, DiscordClient]()
-var nextInstanceId = 0
+var nextInstanceId: uint8 = 0
 
 proc getClientInstance*(instanceID: uint8): DiscordClient =
     ## Get a client instance with instance id. Mainly used internally.
@@ -262,7 +262,6 @@ proc newDiscordClient*(tkn: string, commandPrefix: string, log: Log = newLog(ord
     var cac: Cache
     new(cac)
 
-    result = DiscordClient(token: tkn, cache: cac, commandPrefix: commandPrefix, log: log)
-    result = DiscordClient(token: tkn, cache: cac, commandPrefix: commandPrefix, instanceID: nextInstanceId)
+    result = DiscordClient(token: tkn, cache: cac, commandPrefix: commandPrefix, log: log, instanceID: nextInstanceId)
     clientInstances.add(nextInstanceId, result)
-    nextInstanceId++
+    nextInstanceId = nextInstanceId + 1
