@@ -73,7 +73,7 @@ proc closeConnection*(shard: Shard, code: int = 1000) {.async.} =
     shard.client.log.warn("[SHARD " & $shard.id & "] Disconnecting with code: " & $code)
     await shard.ws.close(code)
 
-proc reconnectShard*(shard: Shard) {.async.} =
+proc reconnectShard(shard: Shard) {.async.} =
     shard.client.log.info("[SHARD " & $shard.id & "] Reconnecting...")
     shard.reconnecting = true
 

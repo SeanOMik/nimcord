@@ -90,11 +90,6 @@ registerCommand(Command(name: "ping2", commandBody: proc(ctx: CommandContext) =
     asyncCheck ctx.channel.sendMessage("PONG 2")
 ))
 
-registerCommand(Command(name: "reconnect", commandBody: proc(ctx: CommandContext) = 
-    asyncCheck ctx.channel.sendMessage("Reconnecting...")
-    asyncCheck ctx.client.shards[0].reconnectShard()
-))
-
 # Listen for the ready event.
 registerEventListener(EventType.evtReady, proc(bEvt: BaseEvent) =
     # Cast the BaseEvent to the ReadyEvent which is what we're listening to.
