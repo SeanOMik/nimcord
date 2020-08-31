@@ -410,20 +410,21 @@ proc messageReactionRemoveEmoji(shard: Shard, json: JsonNode) =
 proc presenceUpdate(shard: Shard, json: JsonNode) =
     # This proc doesn't actually dispatch any events,
     # it just updates member.presence
-    var g = shard.client.cache.getGuild(getIDFromJson(json["guild_id"].getStr()))
-    var member = g.getGuildMember(getIDFromJson(json["user"]["id"].getStr()))
+    if json.contains("guild_id"): # Make sure that json contains a guild_id
+        var g = shard.client.cache.getGuild(getIDFromJson(json["guild_id"].getStr()))
+        var member = g.getGuildMember(getIDFromJson(json["user"]["id"].getStr()))
 
-    # Make sure some member fields are upto date.
-    member.roles = @[]
-    for role in json["roles"]:
-        member.roles.add(getIDFromJson(role.getStr()))
+        # Make sure some member fields are upto date.
+        member.roles = @[]
+        for role in json["roles"]:
+            member.roles.add(getIDFromJson(role.getStr()))
 
-    if json.contains("premium_since"):
-        member.premiumSince = json["premium_since"].getStr()
-    if json.contains("nick"):
-        member.nick = json["nick"].getStr()
+        if json.contains("premium_since"):
+            member.premiumSince = json["premium_since"].getStr()
+        if json.contains("nick"):
+            member.nick = json["nick"].getStr()
 
-    member.presence = newPresence(json)
+        member.presence = newPresence(json)
 
 proc typingStart(shard: Shard, json: JsonNode) =
     var event = TypingStartEvent(shard: shard, name: $EventType.evtTypingStart)
