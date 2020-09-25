@@ -37,7 +37,8 @@ You can view examples in the [examples](examples) directory.
 # Todo:
 - [x] Finish all REST API calls.
 - [x] Handle all gateway events.
-- [x] Reconnecting
+- [x] Reconnecting.
+- [ ] Configurable Logger.
 - [ ] Add library to official Nimble package repository.
 - [ ] Memory optimizations.
   - [ ] Member
