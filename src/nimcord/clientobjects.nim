@@ -1,4 +1,4 @@
-import websocket, cache, user, log
+import ws, cache, user, log
 
 type 
     DiscordClient* = ref object 
@@ -15,9 +15,10 @@ type
     Shard* = ref object
         id*: int
         client*: DiscordClient
-        ws*: AsyncWebSocket
+        ws*: WebSocket
         heartbeatInterval*: int
         heartbeatAcked*: bool
         lastSequence*: int
         reconnecting*: bool
         sessionID*: string
+        isHandlingHeartbeat*: bool
