@@ -19,7 +19,7 @@ proc readyEvent(shard: Shard, json: JsonNode) =
 
     shard.client.clientUser = newUser(userJson)
     shard.sessionID = json["session_id"].getStr()
-    
+
     dispatchEvent(readyEvent)
 
 proc channelCreateEvent(shard: Shard, json: JsonNode) = 

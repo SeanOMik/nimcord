@@ -7,13 +7,13 @@ Memory optimized, simple, and feature rich Discord API wrapper written in Nim.
 </p>
 
 # NimCord
-A Discord API wrapper written in Nim. Inspired, and created by the author of a memory optimized Discord Library named DisC++.
+A Discord API wrapper written in Nim. Inspired, and created by the author of a memory optimized Discord Library named [DisC++](https://github.com/DisCPP/DisCPP).
 
 ## State
 NimCord is currently in a testing state. If you want to use it, you can but you may encounter errors. If you do encounter errors, create a GitHub issue or join the Discord server.
 
 ## Dependencies
-* [Websocket.nim](https://github.com/niv/websocket.nim)
+* [ws](https://github.com/treeform/ws)
 
 ## Documenation
 You can generate documenation by running `generate_docs.bat/sh` (depending on your system). Documentation is outputted to the `docs` directory.
@@ -30,16 +30,16 @@ You can generate documenation by running `generate_docs.bat/sh` (depending on yo
    * NimCord is not yet available on the official Nimble package repository. To install it, you need to clone this repo and in the project root, run: `nimble install`
 
 ### Note: 
-* If you already have Websocket.nim installed, you need to make sure you have version 0.4.1 installed.
 * To compile you must define `ssl` example: `nim compile -d:ssl --run .\examples\basic.nim`
 
 You can view examples in the [examples](examples) directory.
 
-
 # Todo:
 - [x] Finish all REST API calls.
 - [x] Handle all gateway events.
-- [x] Reconnecting
+- [x] Reconnecting.
+- [ ] Configurable Logger.
+- [ ] Add library to official Nimble package repository.
 - [ ] Memory optimizations.
   - [ ] Member
   - [ ] Channel
