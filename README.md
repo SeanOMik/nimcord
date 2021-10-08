@@ -1,13 +1,14 @@
 <h1 align="center">NimCord</h1>
 
 <p align="center">
-<a href="https://discord.gg/9U4EpP9"><img src="https://discordapp.com/api/guilds/716387781055873134/widget.png?style=shield"></a>
-<br>
 Memory optimized, simple, and feature rich Discord API wrapper written in Nim.
 </p>
 
 # NimCord
 A Discord API wrapper written in Nim. Inspired, and created by the author of a memory optimized Discord Library named [DisC++](https://github.com/DisCPP/DisCPP).
+
+## Note:
+Library is discontinued. Due to Discord's lack of communication and out-of-touch attitude towards library developers, this library is no longer being maintained. Recommended alternative is [Dimscord](https://github.com/krisppurg/dimscord).
 
 ## State
 NimCord is currently in a testing state. If you want to use it, you can but you may encounter errors. If you do encounter errors, create a GitHub issue or join the Discord server.
